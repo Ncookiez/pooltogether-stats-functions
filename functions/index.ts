@@ -4,7 +4,6 @@ const cors = require('cors');
 const express = require('express');
 const admin = require('firebase-admin');
 const swagger = require('swagger-ui-express');
-const swaggerDocs = require('./../swagger.json');
 const functions = require('firebase-functions');
 
 // Importing Data Query Functions:
@@ -25,6 +24,10 @@ const storage = admin.storage();
 // Initializing Express Server:
 const api: Application = express();
 api.use(cors());
+api.use(express.static('functions/static'));
+
+// Fetching Swagger Docs:
+const swaggerDocs = require('../static/swagger.json');
 
 /* ========================================================================================================================================================================= */
 
