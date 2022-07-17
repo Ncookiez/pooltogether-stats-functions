@@ -154,7 +154,7 @@ api.use('/docs', swagger.serve, swagger.setup(swaggerDocs));
 // File Endpoints:
 chains.forEach(chain => {
   files.forEach(fileName => {
-    api.get(`/${chain}/${fileName}.json`, async (req: Request, res: Response) => {
+    api.get(`/${chain}/${fileName}`, async (req: Request, res: Response) => {
       const file = await fetchFile(`${chain}/${fileName}.json`);
       if(file) {
         res.status(200).end(JSON.stringify(file, null, ' '));
