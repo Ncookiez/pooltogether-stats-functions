@@ -60,6 +60,8 @@ const fetchFile = async (fileName: string) => {
     } catch(err) {
       console.error(`Failed to fetch ${fileName} from storage bucket: ${err}`);
     }
+  } else {
+    console.warn(`Could not find ${fileName} in storage bucket.`);
   }
   return undefined;
 }
