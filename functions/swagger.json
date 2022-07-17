@@ -1,0 +1,642 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "This API is the easiest way to query previously queried on-chain data from PoolTogether V4.",
+    "version": "1.0.0",
+    "title": "PoolTogether Stats API"
+  },
+  "schemes": [
+    "https"
+  ],
+  "tags": [
+    {
+      "name": "General Usage",
+      "description": "Query user activity through basic V4 functionality."
+    },
+    {
+      "name": "Delegations",
+      "description": "Query delegation activity."
+    },
+    {
+      "name": "Other",
+      "description": "Query other interesting on-chain stats."
+    }
+  ],
+  "paths": {
+    "/{chain}/deposits": {
+      "get": {
+        "tags": [
+          "General Usage"
+        ],
+        "summary": "Gets a list of all deposits on a specific chain.",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "chain",
+            "in": "path",
+            "description": "Blockchain to query data from.",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "eth",
+              "poly",
+              "avax",
+              "op"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful query.",
+            "schema": {
+              "$ref": "#/definitions/Deposits"
+            }
+          },
+          "500": {
+            "description": "Internal API error."
+          }
+        }
+      }
+    },
+    "/{chain}/withdrawals": {
+      "get": {
+        "tags": [
+          "General Usage"
+        ],
+        "summary": "Gets a list of all withdrawals on a specific chain.",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "chain",
+            "in": "path",
+            "description": "Blockchain to query data from.",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "eth",
+              "poly",
+              "avax",
+              "op"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful query.",
+            "schema": {
+              "$ref": "#/definitions/Withdrawals"
+            }
+          },
+          "500": {
+            "description": "Internal API error."
+          }
+        }
+      }
+    },
+    "/{chain}/claims": {
+      "get": {
+        "tags": [
+          "General Usage"
+        ],
+        "summary": "Gets a list of all claims on a specific chain.",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "chain",
+            "in": "path",
+            "description": "Blockchain to query data from.",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "eth",
+              "poly",
+              "avax",
+              "op"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful query.",
+            "schema": {
+              "$ref": "#/definitions/Claims"
+            }
+          },
+          "500": {
+            "description": "Internal API error."
+          }
+        }
+      }
+    },
+    "/{chain}/yield": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "summary": "Gets a list of all yield captures on a specific chain.",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "chain",
+            "in": "path",
+            "description": "Blockchain to query data from.",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "eth",
+              "poly",
+              "avax",
+              "op"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful query.",
+            "schema": {
+              "$ref": "#/definitions/Yield"
+            }
+          },
+          "500": {
+            "description": "Internal API error."
+          }
+        }
+      }
+    },
+    "/{chain}/supply": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "summary": "Gets a history of aave tokens and ticket supply on a specific chain.",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "chain",
+            "in": "path",
+            "description": "Blockchain to query data from.",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "eth",
+              "poly",
+              "avax",
+              "op"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful query.",
+            "schema": {
+              "$ref": "#/definitions/Supply"
+            }
+          },
+          "500": {
+            "description": "Internal API error."
+          }
+        }
+      }
+    },
+    "/{chain}/delegationsCreated": {
+      "get": {
+        "tags": [
+          "Delegations"
+        ],
+        "summary": "Gets a list of all delegations created on a specific chain.",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "chain",
+            "in": "path",
+            "description": "Blockchain to query data from.",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "eth",
+              "poly",
+              "avax",
+              "op"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful query.",
+            "schema": {
+              "$ref": "#/definitions/DelegationsCreated"
+            }
+          },
+          "500": {
+            "description": "Internal API error."
+          }
+        }
+      }
+    },
+    "/{chain}/delegationsFunded": {
+      "get": {
+        "tags": [
+          "Delegations"
+        ],
+        "summary": "Gets a list of all delegations funded on a specific chain.",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "chain",
+            "in": "path",
+            "description": "Blockchain to query data from.",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "eth",
+              "poly",
+              "avax",
+              "op"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful query.",
+            "schema": {
+              "$ref": "#/definitions/DelegationsFunded"
+            }
+          },
+          "500": {
+            "description": "Internal API error."
+          }
+        }
+      }
+    },
+    "/{chain}/delegationsUpdated": {
+      "get": {
+        "tags": [
+          "Delegations"
+        ],
+        "summary": "Gets a list of all delegations updated on a specific chain.",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "chain",
+            "in": "path",
+            "description": "Blockchain to query data from.",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "eth",
+              "poly",
+              "avax",
+              "op"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful query.",
+            "schema": {
+              "$ref": "#/definitions/DelegationsUpdated"
+            }
+          },
+          "500": {
+            "description": "Internal API error."
+          }
+        }
+      }
+    },
+    "/{chain}/delegationsWithdrawn": {
+      "get": {
+        "tags": [
+          "Delegations"
+        ],
+        "summary": "Gets a list of all delegations withdrawn on a specific chain.",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "chain",
+            "in": "path",
+            "description": "Blockchain to query data from.",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "eth",
+              "poly",
+              "avax",
+              "op"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful query.",
+            "schema": {
+              "$ref": "#/definitions/DelegationsWithdrawn"
+            }
+          },
+          "500": {
+            "description": "Internal API error."
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Deposits": {
+      "type": "object",
+      "properties": {
+        "lastQueriedBlock": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "txHash": {
+                "type": "string"
+              },
+              "block": {
+                "type": "integer"
+              },
+              "timestamp": {
+                "type": "number"
+              },
+              "wallet": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "Withdrawals": {
+      "type": "object",
+      "properties": {
+        "lastQueriedBlock": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "txHash": {
+                "type": "string"
+              },
+              "block": {
+                "type": "integer"
+              },
+              "timestamp": {
+                "type": "number"
+              },
+              "wallet": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "Claims": {
+      "type": "object",
+      "properties": {
+        "lastQueriedBlock": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "txHash": {
+                "type": "string"
+              },
+              "block": {
+                "type": "integer"
+              },
+              "timestamp": {
+                "type": "number"
+              },
+              "wallet": {
+                "type": "string"
+              },
+              "prizes": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Yield": {
+      "type": "object",
+      "properties": {
+        "lastQueriedBlock": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "txHash": {
+                "type": "string"
+              },
+              "block": {
+                "type": "integer"
+              },
+              "timestamp": {
+                "type": "number"
+              },
+              "amount": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "Supply": {
+      "type": "object",
+      "properties": {
+        "lastQueriedBlock": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "block": {
+                "type": "integer"
+              },
+              "timestamp": {
+                "type": "number"
+              },
+              "aave": {
+                "type": "number"
+              },
+              "tickets": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "DelegationsCreated": {
+      "type": "object",
+      "properties": {
+        "lastQueriedBlock": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "txHash": {
+                "type": "string"
+              },
+              "block": {
+                "type": "integer"
+              },
+              "timestamp": {
+                "type": "number"
+              },
+              "delegator": {
+                "type": "string"
+              },
+              "delegatee": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "DelegationsFunded": {
+      "type": "object",
+      "properties": {
+        "lastQueriedBlock": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "txHash": {
+                "type": "string"
+              },
+              "block": {
+                "type": "integer"
+              },
+              "timestamp": {
+                "type": "number"
+              },
+              "delegator": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "DelegationsUpdated": {
+      "type": "object",
+      "properties": {
+        "lastQueriedBlock": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "txHash": {
+                "type": "string"
+              },
+              "block": {
+                "type": "integer"
+              },
+              "timestamp": {
+                "type": "number"
+              },
+              "delegator": {
+                "type": "string"
+              },
+              "newDelegatee": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "DelegationsWithdrawn": {
+      "type": "object",
+      "properties": {
+        "lastQueriedBlock": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "txHash": {
+                "type": "string"
+              },
+              "block": {
+                "type": "integer"
+              },
+              "timestamp": {
+                "type": "number"
+              },
+              "delegator": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "externalDocs": {
+    "description": "GitHub Repository",
+    "url": "https://github.com/Ncookiez/pooltogether-stats-functions"
+  }
+}

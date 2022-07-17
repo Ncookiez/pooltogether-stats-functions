@@ -1,7 +1,11 @@
 
 // Required Packages:
-const functions = require('firebase-functions');
+const cors = require('cors');
+const express = require('express');
 const admin = require('firebase-admin');
+const swagger = require('swagger-ui-express');
+const swaggerDocs = require('./../swagger.json');
+const functions = require('firebase-functions');
 
 // Importing Data Query Functions:
 import { queryData } from './queries';
@@ -9,6 +13,7 @@ import { queryData } from './queries';
 // Type Imports:
 import type { Files, File } from './types';
 import type { Chain } from 'weaverfi/dist/types';
+import type { Application, Request, Response } from 'express';
 
 // Fetching Firebase Logger Compatibility Patch:
 require("firebase-functions/lib/logger/compat");
@@ -17,12 +22,28 @@ require("firebase-functions/lib/logger/compat");
 admin.initializeApp();
 const storage = admin.storage();
 
+// Initializing Express Server:
+const api: Application = express();
+api.use(cors());
+
 /* ========================================================================================================================================================================= */
 
-// Settings:
+// General Settings:
 const storageBucketName: string = 'pooltogether-data';
+const chains: Chain[] = ['eth', 'poly', 'avax', 'op'];
+const files: string[] = ['deposits', 'withdrawals', 'claims', 'yield', 'supply', 'delegationsCreated', 'delegationsFunded', 'delegationsUpdated', 'delegationsWithdrawn'];
+
+// Query Settings:
 const queryFrequencyInHours: number = 6;
 const queryTimeout: number = 540;
+
+// API Settings:
+const apiMemory: string = '256MB';
+const apiTimeout: number = 60;
+const apiMaxInstances: number = 100;
+const swaggerOptions = {
+  customCss: '.swagger-ui { background: #4c249f }'
+}
 
 /* ========================================================================================================================================================================= */
 
@@ -120,5 +141,32 @@ exports.opDataQueries = functions.runWith({ timeoutSeconds: queryTimeout }).pubs
 
 /* ========================================================================================================================================================================= */
 
+// API Default Endpoint (OpenAPI Docs):
+api.use('/', swagger.serve, swagger.setup(swaggerDocs, swaggerOptions));
+
+// File Endpoints:
+chains.forEach(chain => {
+  files.forEach(fileName => {
+    api.get(`/${chain}/${fileName}.json`, async (req: Request, res: Response) => {
+      const file = await fetchFile(`${chain}/${fileName}.json`);
+      if(file) {
+        res.status(200).end(JSON.stringify(file, null, ' '));
+      } else {
+        res.status(500).end('Internal API error.');
+      }
+    });
+  });
+});
+
+// Teapot Response:
+api.get(`/teapot`, (req: Request, res: Response) => {
+  res.status(418).end(`             ;,'\n     _o_    ;:;'\n ,-.'---\`.__ ;\n((j\`=====',-'\n \`-\\     /\n    \`-=-'`);
+});
+
+// Error Response:
+api.all('*', (req: Request, res: Response) => {
+  res.status(400).end('Invalid route.');
+});
+
 // API Function:
-// <TODO>
+exports.api = functions.runWith({ memory: apiMemory, timeoutSeconds: apiTimeout, maxInstances: apiMaxInstances }).https.onRequest(api);
