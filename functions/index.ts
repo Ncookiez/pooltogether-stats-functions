@@ -44,9 +44,6 @@ const queryTimeout: number = 540;
 const apiMemory: string = '256MB';
 const apiTimeout: number = 60;
 const apiMaxInstances: number = 100;
-const swaggerOptions = {
-  customCss: '.swagger-ui { background: #4c249f }'
-}
 
 /* ========================================================================================================================================================================= */
 
@@ -150,7 +147,7 @@ api.get(`/`, (req: Request, res: Response) => {
 });
 
 // OpenAPI Docs:
-api.use('/docs', swagger.serve, swagger.setup(swaggerDocs, swaggerOptions));
+api.use('/docs', swagger.serve, swagger.setup(swaggerDocs));
 
 // File Endpoints:
 chains.forEach(chain => {
