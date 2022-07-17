@@ -5,103 +5,8 @@ import { query, queryBlocks, parseBN } from 'weaverfi/dist/functions';
 import { prizePoolABI, prizeDistributorABI, ticketABI, flushABI, aaveUSDCABI, twabDelegatorABI } from './ABIs.js';
 
 // Type Imports:
-import type { Files, File } from './index';
-import type { Chain, Address } from 'weaverfi/dist/types';
-
-/* ========================================================================================================================================================================= */
-
-// Chain Info Interface:
-interface ChainInfo {
-  provider: ethers.providers.StaticJsonRpcProvider
-  rpcLimit: number
-  prizePool: Address
-  prizeDistributor: Address
-  delegator: Address
-  ticket: Address
-  flush: Address
-  aaveUSDC: Address
-  yieldSource: Address
-  timestamps: { block: number, timestamp: number }[]
-}
-
-// Deposit Interface:
-interface Deposit {
-  txHash: string
-  block: number
-  timestamp: number | undefined
-  wallet: Address
-  amount: number
-}
-
-// Withdrawal Interface:
-interface Withdrawal {
-  txHash: string
-  block: number
-  timestamp: number | undefined
-  wallet: Address
-  amount: number
-}
-
-// Claim Interface:
-interface Claim {
-  txHash: string
-  block: number
-  timestamp: number | undefined
-  wallet: Address
-  prizes: number[]
-}
-
-// Yield Capture Interface:
-interface YieldCapture {
-  txHash: string
-  block: number
-  timestamp: number | undefined
-  amount: number
-}
-
-// Supply Interface:
-interface Supply {
-  block: number
-  timestamp: number | undefined
-  aave: number
-  tickets: number
-}
-
-// Delegation Created Interface:
-interface DelegationCreated {
-  txHash: string
-  block: number
-  timestamp: number | undefined
-  delegator: Address
-  delegatee: Address
-}
-
-// Delegation Funded Interface:
-interface DelegationFunded {
-  txHash: string
-  block: number
-  timestamp: number | undefined
-  delegator: Address
-  amount: number
-}
-
-// Delegation Updated Interface:
-interface DelegationUpdated {
-  txHash: string
-  block: number
-  timestamp: number | undefined
-  delegator: Address
-  newDelegatee: Address
-}
-
-// Delegation Withdrawn Interface:
-interface DelegationWithdrawn {
-  txHash: string
-  block: number
-  timestamp: number | undefined
-  delegator: Address
-  amount: number
-}
+import type { Chain } from 'weaverfi/dist/types';
+import type { ChainInfo, Files, File, Deposit, Withdrawal, Claim, YieldCapture, Supply, DelegationCreated, DelegationFunded, DelegationUpdated, DelegationWithdrawn } from './types';
 
 /* ========================================================================================================================================================================= */
 
@@ -175,45 +80,6 @@ export const queryData = async (chain: Chain, files: Files) => {
     files.delegationsWithdrawn = await queryDelegationsWithdrawn(chain, files.delegationsWithdrawn, currentBlock);
   }
   return files;
-}
-
-/* ========================================================================================================================================================================= */
-
-// Function to query event timestamp:
-const getEventTimestamp = async (chain: Chain, event: ethers.Event) => {
-  const chainInfo = chains[chain];
-  if(chainInfo) {
-    const block = event.blockNumber;
-    let foundEntry = chainInfo.timestamps.find(entry => entry.block === block);
-    if(foundEntry) {
-      return foundEntry.timestamp;
-    } else {
-      const timestamp = (await event.getTransaction()).timestamp;
-      if(timestamp) {
-        chainInfo.timestamps.push({ block, timestamp });
-      }
-      return timestamp;
-    }
-  } else {
-    return undefined;
-  }
-}
-
-// Function to query block timestamp:
-const getBlockTimestamp = async (chain: Chain, block: number) => {
-  const chainInfo = chains[chain];
-  if(chainInfo) {
-    let foundEntry = chainInfo.timestamps.find(entry => entry.block === block);
-    if(foundEntry) {
-      return foundEntry.timestamp;
-    } else {
-      const timestamp = (await chainInfo.provider.getBlock(block)).timestamp;
-      chainInfo.timestamps.push({ block, timestamp });
-      return timestamp;
-    }
-  } else {
-    return undefined;
-  }
 }
 
 /* ========================================================================================================================================================================= */
@@ -429,4 +295,43 @@ const queryDelegationsWithdrawn = async (chain: Chain, file: File | undefined, c
     file.lastQueriedBlock = currentBlock;
   }
   return file;
+}
+
+/* ========================================================================================================================================================================= */
+
+// Function to query event timestamp:
+const getEventTimestamp = async (chain: Chain, event: ethers.Event) => {
+  const chainInfo = chains[chain];
+  if(chainInfo) {
+    const block = event.blockNumber;
+    let foundEntry = chainInfo.timestamps.find(entry => entry.block === block);
+    if(foundEntry) {
+      return foundEntry.timestamp;
+    } else {
+      const timestamp = (await event.getTransaction()).timestamp;
+      if(timestamp) {
+        chainInfo.timestamps.push({ block, timestamp });
+      }
+      return timestamp;
+    }
+  } else {
+    return undefined;
+  }
+}
+
+// Function to query block timestamp:
+const getBlockTimestamp = async (chain: Chain, block: number) => {
+  const chainInfo = chains[chain];
+  if(chainInfo) {
+    let foundEntry = chainInfo.timestamps.find(entry => entry.block === block);
+    if(foundEntry) {
+      return foundEntry.timestamp;
+    } else {
+      const timestamp = (await chainInfo.provider.getBlock(block)).timestamp;
+      chainInfo.timestamps.push({ block, timestamp });
+      return timestamp;
+    }
+  } else {
+    return undefined;
+  }
 }

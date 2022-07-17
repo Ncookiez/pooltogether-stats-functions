@@ -7,6 +7,7 @@ const admin = require('firebase-admin');
 import { queryData } from './queries';
 
 // Type Imports:
+import type { Files, File } from './types';
 import type { Chain } from 'weaverfi/dist/types';
 
 // Fetching Firebase Logger Compatibility Patch:
@@ -15,25 +16,6 @@ require("firebase-functions/lib/logger/compat");
 // Initializing Firebase App:
 admin.initializeApp();
 const storage = admin.storage();
-
-/* ========================================================================================================================================================================= */
-
-// File Interfaces:
-export interface Files {
-  deposits: File | undefined
-  withdrawals: File | undefined
-  claims: File | undefined
-  yield: File | undefined
-  supply: File | undefined
-  delegationsCreated: File | undefined
-  delegationsFunded: File | undefined
-  delegationsUpdated: File | undefined
-  delegationsWithdrawn: File | undefined
-}
-export interface File {
-  lastQueriedBlock: number
-  data: any[]
-}
 
 /* ========================================================================================================================================================================= */
 
