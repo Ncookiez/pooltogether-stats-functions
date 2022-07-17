@@ -1,10 +1,13 @@
 
+// Required Packages:
+const ethers = require('ethers');
+
 // Imports:
-import ethers from 'ethers';
 import { query, queryBlocks, parseBN } from 'weaverfi/dist/functions';
-import { prizePoolABI, prizeDistributorABI, ticketABI, flushABI, aaveUSDCABI, twabDelegatorABI } from './ABIs.js';
+import { prizePoolABI, prizeDistributorABI, ticketABI, flushABI, aaveUSDCABI, twabDelegatorABI } from './ABIs';
 
 // Type Imports:
+import type { Event } from 'ethers';
 import type { Chain } from 'weaverfi/dist/types';
 import type { ChainInfo, Files, File, Deposit, Withdrawal, Claim, YieldCapture, Supply, DelegationCreated, DelegationFunded, DelegationUpdated, DelegationWithdrawn } from './types';
 
@@ -308,8 +311,8 @@ const queryDelegationsWithdrawn = async (chain: Chain, file: File | undefined, c
 
 /* ========================================================================================================================================================================= */
 
-// Function to query event timestamp:
-const getEventTimestamp = async (chain: Chain, event: ethers.Event) => {
+// Helper function to query event timestamp:
+const getEventTimestamp = async (chain: Chain, event: Event) => {
   const chainInfo = chains[chain];
   if(chainInfo) {
     const block = event.blockNumber;
@@ -317,18 +320,19 @@ const getEventTimestamp = async (chain: Chain, event: ethers.Event) => {
     if(foundEntry) {
       return foundEntry.timestamp;
     } else {
-      const timestamp = (await event.getTransaction()).timestamp;
-      if(timestamp) {
+      try {
+        const timestamp = (await event.getBlock()).timestamp;
         chainInfo.timestamps.push({ block, timestamp });
+        return timestamp;
+      } catch {
+        console.warn(`Skipping timestamp query for block ${block}`);
       }
-      return timestamp;
     }
-  } else {
-    return undefined;
   }
+  return undefined;
 }
 
-// Function to query block timestamp:
+// Helper function to query block timestamp:
 const getBlockTimestamp = async (chain: Chain, block: number) => {
   const chainInfo = chains[chain];
   if(chainInfo) {
@@ -336,11 +340,14 @@ const getBlockTimestamp = async (chain: Chain, block: number) => {
     if(foundEntry) {
       return foundEntry.timestamp;
     } else {
-      const timestamp = (await chainInfo.provider.getBlock(block)).timestamp;
-      chainInfo.timestamps.push({ block, timestamp });
-      return timestamp;
+      try {
+        const timestamp = (await chainInfo.provider.getBlock(block)).timestamp;
+        chainInfo.timestamps.push({ block, timestamp });
+        return timestamp;
+      } catch {
+        console.warn(`Skipping timestamp query for block ${block}`);
+      }
     }
-  } else {
-    return undefined;
   }
+  return undefined;
 }

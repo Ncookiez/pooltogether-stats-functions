@@ -16,7 +16,7 @@ These are multiple chain-specific scheduled cloud functions, querying for all up
 
 This data is saved in storage buckets on Firebase, where they can be easily queried.
 
-Currently, these functions runs every `12 hours`.
+Currently, these functions run every `6 hours`.
 
 ### API
 

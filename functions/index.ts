@@ -21,7 +21,7 @@ const storage = admin.storage();
 
 // Settings:
 const storageBucketName: string = 'pooltogether-data';
-const queryFrequencyInHours: number = 12;
+const queryFrequencyInHours: number = 6;
 const queryTimeout: number = 540;
 
 /* ========================================================================================================================================================================= */
@@ -75,7 +75,7 @@ const saveAllFiles = async (chain: Chain, files: Files) => {
   for(let fileName in files) {
     let file = files[fileName as keyof Files];
     if(file) {
-      await saveFile(`${chain}/${file}.json`, file);
+      await saveFile(`${chain}/${fileName}.json`, file);
     }
   }
 }
@@ -92,13 +92,13 @@ exports.ethDataQueries = functions.runWith({ timeoutSeconds: queryTimeout }).pub
 });
 
 // Polygon Query Function:
-exports.polyDataQueries = functions.runWith({ timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
-  const chain: Chain = 'poly';
-  const files = await fetchAllFiles(chain);
-  const newFiles = await queryData(chain, files);
-  await saveAllFiles(chain, newFiles);
-  return null;
-});
+// exports.polyDataQueries = functions.runWith({ timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
+//   const chain: Chain = 'poly';
+//   const files = await fetchAllFiles(chain);
+//   const newFiles = await queryData(chain, files);
+//   await saveAllFiles(chain, newFiles);
+//   return null;
+// });
 
 // Avalanche Query Function:
 exports.avaxDataQueries = functions.runWith({ timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
