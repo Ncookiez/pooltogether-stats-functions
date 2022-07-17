@@ -141,8 +141,13 @@ exports.opDataQueries = functions.runWith({ timeoutSeconds: queryTimeout }).pubs
 
 /* ========================================================================================================================================================================= */
 
-// API Default Endpoint (OpenAPI Docs):
-api.use('/', swagger.serve, swagger.setup(swaggerDocs, swaggerOptions));
+// Root Response:
+api.get(`/`, (req: Request, res: Response) => {
+  res.status(200).end(`<title>PoolTogether Stats API</title><p>Check out our OpenAPI docs <a href="/docs">here</a>.</p>`);
+});
+
+// OpenAPI Docs:
+api.use('/docs', swagger.serve, swagger.setup(swaggerDocs, swaggerOptions));
 
 // File Endpoints:
 chains.forEach(chain => {
