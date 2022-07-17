@@ -90,6 +90,7 @@ const queryDeposits = async (chain: Chain, file: File | undefined, currentBlock:
   if(file && chainInfo) {
     const depositEvents = await queryBlocks(chain, chainInfo.prizePool, prizePoolABI, 'Deposited', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
     if(depositEvents.length > 0) {
+      console.info(`${chain.toUpperCase()}: Found ${depositEvents.length} new deposit events.`);
       for(let event of depositEvents) {
         if(event.args) {
           const deposit: Deposit = {
@@ -114,6 +115,7 @@ const queryWithdrawals = async (chain: Chain, file: File | undefined, currentBlo
   if(file && chainInfo) {
     const withdrawalEvents = await queryBlocks(chain, chainInfo.prizePool, prizePoolABI, 'Withdrawal', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
     if(withdrawalEvents.length > 0) {
+      console.info(`${chain.toUpperCase()}: Found ${withdrawalEvents.length} new withdrawal events.`);
       for(let event of withdrawalEvents) {
         if(event.args) {
           const withdrawal: Withdrawal = {
@@ -138,6 +140,7 @@ const queryClaims = async (chain: Chain, file: File | undefined, currentBlock: n
   if(file && chainInfo) {
     const claimEvents = await queryBlocks(chain, chainInfo.prizeDistributor, prizeDistributorABI, 'ClaimedDraw', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
     if(claimEvents.length > 0) {
+      console.info(`${chain.toUpperCase()}: Found ${claimEvents.length} new claim events.`);
       for(let event of claimEvents) {
         if(event.args) {
           const prize = Math.ceil(parseBN(event.args.payout) / (10 ** 6));
@@ -168,6 +171,7 @@ const queryYield = async (chain: Chain, file: File | undefined, currentBlock: nu
   if(file && chainInfo) {
     const flushEvents = await queryBlocks(chain, chainInfo.flush, flushABI, 'Flushed', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
     if(flushEvents.length > 0) {
+      console.info(`${chain.toUpperCase()}: Found ${flushEvents.length} new flush events.`);
       for(let event of flushEvents) {
         if(event.args) {
           const yieldCapture: YieldCapture = {
@@ -195,6 +199,7 @@ const querySupply = async (chain: Chain, file: File | undefined, currentBlock: n
       aave: parseInt(await query(chain, chainInfo.aaveUSDC, aaveUSDCABI, 'balanceOf', [chainInfo.yieldSource], currentBlock)) / (10 ** 6),
       tickets: parseInt(await query(chain, chainInfo.ticket, ticketABI, 'totalSupply', [], currentBlock)) / (10 ** 6)
     }
+    console.info(`${chain.toUpperCase()}: Queried token supplies.`);
     file.data.push(supply);
     file.lastQueriedBlock = currentBlock;
   }
@@ -207,6 +212,7 @@ const queryDelegationsCreated = async (chain: Chain, file: File | undefined, cur
   if(file && chainInfo) {
     const delegationCreationEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'DelegationCreated', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
     if(delegationCreationEvents.length > 0) {
+      console.info(`${chain.toUpperCase()}: Found ${delegationCreationEvents.length} new delegation creation events.`);
       for(let event of delegationCreationEvents) {
         if(event.args) {
           const delegationCreated: DelegationCreated = {
@@ -231,6 +237,7 @@ const queryDelegationsFunded = async (chain: Chain, file: File | undefined, curr
   if(file && chainInfo) {
     const delegationFundingEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'DelegationFunded', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
     if(delegationFundingEvents.length > 0) {
+      console.info(`${chain.toUpperCase()}: Found ${delegationFundingEvents.length} new delegation funding events.`);
       for(let event of delegationFundingEvents) {
         if(event.args) {
           const delegationFunded: DelegationFunded = {
@@ -255,6 +262,7 @@ const queryDelegationsUpdated = async (chain: Chain, file: File | undefined, cur
   if(file && chainInfo) {
     const delegationUpdateEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'DelegateeUpdated', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
     if(delegationUpdateEvents.length > 0) {
+      console.info(`${chain.toUpperCase()}: Found ${delegationUpdateEvents.length} new delegation update events.`);
       for(let event of delegationUpdateEvents) {
         if(event.args) {
           const delegationUpdated: DelegationUpdated = {
@@ -279,6 +287,7 @@ const queryDelegationsWithdrawn = async (chain: Chain, file: File | undefined, c
   if(file && chainInfo) {
     const delegationWithdrawalEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'TransferredDelegation', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
     if(delegationWithdrawalEvents.length > 0) {
+      console.info(`${chain.toUpperCase()}: Found ${delegationWithdrawalEvents.length} new delegation withdrawal events.`);
       for(let event of delegationWithdrawalEvents) {
         if(event.args) {
           const delegationWithdrawn: DelegationWithdrawn = {
