@@ -12,7 +12,7 @@ Cloud functions to automatically update PoolTogether stats.
 
 ### Scheduled Query Functions
 
-These are multiple chain-specific scheduled cloud functions, querying for all updated on a chain since its last runtime.
+These are multiple chain-specific scheduled cloud functions, querying for all updated data on a chain since its last runtime.
 
 This data is saved in storage buckets on Firebase, where they can be easily queried.
 
