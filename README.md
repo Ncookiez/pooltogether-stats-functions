@@ -22,7 +22,7 @@ Currently, these functions run every `6 hours`.
 
 This API is a cloud function facilitating data queries from front-end apps.
 
-It's OpenAPI documentation can be found [here](#TODO).
+It's OpenAPI documentation can be found [here](https://pooltogether-stats.web.app/docs).
 
 ## Self-Deployment
 
