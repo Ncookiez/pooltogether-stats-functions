@@ -38,6 +38,7 @@ const files: string[] = ['deposits', 'withdrawals', 'claims', 'yield', 'supply',
 
 // Query Settings:
 const queryFrequencyInHours: number = 6;
+const queryMemory: string = '512MB';
 const queryTimeout: number = 540;
 
 // API Settings:
@@ -106,7 +107,7 @@ const saveAllFiles = async (chain: Chain, files: Files) => {
 /* ========================================================================================================================================================================= */
 
 // Ethereum Query Function:
-exports.ethDataQueries = functions.runWith({ timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
+exports.ethDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
   const chain: Chain = 'eth';
   const files = await fetchAllFiles(chain);
   const newFiles = await queryData(chain, files);
@@ -115,7 +116,7 @@ exports.ethDataQueries = functions.runWith({ timeoutSeconds: queryTimeout }).pub
 });
 
 // Polygon Query Function:
-exports.polyDataQueries = functions.runWith({ timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
+exports.polyDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
   const chain: Chain = 'poly';
   const files = await fetchAllFiles(chain);
   const newFiles = await queryData(chain, files);
@@ -124,7 +125,7 @@ exports.polyDataQueries = functions.runWith({ timeoutSeconds: queryTimeout }).pu
 });
 
 // Avalanche Query Function:
-exports.avaxDataQueries = functions.runWith({ timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
+exports.avaxDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
   const chain: Chain = 'avax';
   const files = await fetchAllFiles(chain);
   const newFiles = await queryData(chain, files);
@@ -133,7 +134,7 @@ exports.avaxDataQueries = functions.runWith({ timeoutSeconds: queryTimeout }).pu
 });
 
 // Optimism Query Function:
-exports.opDataQueries = functions.runWith({ timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
+exports.opDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
   const chain: Chain = 'op';
   const files = await fetchAllFiles(chain);
   const newFiles = await queryData(chain, files);
