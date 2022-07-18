@@ -115,13 +115,13 @@ exports.ethDataQueries = functions.runWith({ timeoutSeconds: queryTimeout }).pub
 });
 
 // Polygon Query Function:
-// exports.polyDataQueries = functions.runWith({ timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
-//   const chain: Chain = 'poly';
-//   const files = await fetchAllFiles(chain);
-//   const newFiles = await queryData(chain, files);
-//   await saveAllFiles(chain, newFiles);
-//   return null;
-// });
+exports.polyDataQueries = functions.runWith({ timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
+  const chain: Chain = 'poly';
+  const files = await fetchAllFiles(chain);
+  const newFiles = await queryData(chain, files);
+  await saveAllFiles(chain, newFiles);
+  return null;
+});
 
 // Avalanche Query Function:
 exports.avaxDataQueries = functions.runWith({ timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
