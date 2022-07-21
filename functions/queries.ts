@@ -325,7 +325,13 @@ const getEventTimestamp = async (chain: Chain, event: Event) => {
         chainInfo.timestamps.push({ block, timestamp });
         return timestamp;
       } catch {
-        console.warn(`Skipping timestamp query for block ${block}`);
+        try {
+          const timestamp = (await event.getBlock()).timestamp;
+          chainInfo.timestamps.push({ block, timestamp });
+          return timestamp;
+        } catch {
+          console.warn(`Skipping timestamp query for block ${block}`);
+        }
       }
     }
   }
@@ -345,7 +351,13 @@ const getBlockTimestamp = async (chain: Chain, block: number) => {
         chainInfo.timestamps.push({ block, timestamp });
         return timestamp;
       } catch {
-        console.warn(`Skipping timestamp query for block ${block}`);
+        try {
+          const timestamp = (await chainInfo.provider.getBlock(block)).timestamp;
+          chainInfo.timestamps.push({ block, timestamp });
+          return timestamp;
+        } catch {
+          console.warn(`Skipping timestamp query for block ${block}`);
+        }
       }
     }
   }
