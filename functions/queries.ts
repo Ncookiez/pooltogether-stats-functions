@@ -68,7 +68,7 @@ const chains: Partial<Record<Chain, ChainInfo>> = {
 /* ========================================================================================================================================================================= */
 
 // Function to query all data from a specific chain:
-export const queryData = async (chain: Chain, files: Files) => {
+export const queryData = async (chain: Chain, files: Record<Files, File | undefined>) => {
   const chainInfo = chains[chain];
   if(chainInfo) {
     const currentBlock = await chainInfo.provider.getBlockNumber();

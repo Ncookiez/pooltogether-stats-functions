@@ -34,7 +34,7 @@ const swaggerDocs = require('../static/swagger.json');
 // General Settings:
 const storageBucketName: string = 'pooltogether-data';
 const chains: Chain[] = ['eth', 'poly', 'avax', 'op'];
-const files: string[] = ['deposits', 'withdrawals', 'claims', 'yield', 'supply', 'delegationsCreated', 'delegationsFunded', 'delegationsUpdated', 'delegationsWithdrawn'];
+const fileNames: Files[] = ['deposits', 'withdrawals', 'claims', 'yield', 'supply', 'delegationsCreated', 'delegationsFunded', 'delegationsUpdated', 'delegationsWithdrawn'];
 
 // Query Settings:
 const queryFrequencyInHours: number = 6;
@@ -45,6 +45,7 @@ const queryTimeout: number = 540;
 const apiMemory: string = '256MB';
 const apiTimeout: number = 60;
 const apiMaxInstances: number = 100;
+const defaultPageSize: number = 1000;
 
 /* ========================================================================================================================================================================= */
 
@@ -80,7 +81,7 @@ const saveFile = async (fileName: string, file: File) => {
 
 // Function to fetch all files of a specific chain from storage bucket:
 const fetchAllFiles = async (chain: Chain) => {
-  const files: Files = {
+  const files: Record<Files, File | undefined> = {
     deposits: await fetchFile(`${chain}/deposits.json`),
     withdrawals: await fetchFile(`${chain}/withdrawals.json`),
     claims: await fetchFile(`${chain}/claims.json`),
@@ -95,9 +96,9 @@ const fetchAllFiles = async (chain: Chain) => {
 }
 
 // Function to save all files of a specific chain to storage bucket:
-const saveAllFiles = async (chain: Chain, files: Files) => {
+const saveAllFiles = async (chain: Chain, files: Record<Files, File | undefined>) => {
   for(let fileName in files) {
-    let file = files[fileName as keyof Files];
+    let file = files[fileName as Files];
     if(file) {
       await saveFile(`${chain}/${fileName}.json`, file);
     }
@@ -154,11 +155,21 @@ api.use('/docs', swagger.serve, swagger.setup(swaggerDocs));
 
 // File Endpoints:
 chains.forEach(chain => {
-  files.forEach(fileName => {
+  fileNames.forEach(fileName => {
     api.get(`/${chain}/${fileName}`, async (req: Request, res: Response) => {
       const file = await fetchFile(`${chain}/${fileName}.json`);
       if(file) {
-        res.status(200).end(JSON.stringify(file, null, ' '));
+        const page = req.query.page != undefined ? parseInt(req.query.page as string) : 0;
+        const pageSize = req.query.pageSize != undefined ? parseInt(req.query.pageSize as string) : defaultPageSize;
+        const paginationStart = page * pageSize;
+        const paginationEnd = paginationStart + pageSize;
+        const paginatedFile = {
+          lastQueriedBlock: file.lastQueriedBlock,
+          page: page,
+          hasNextPage: file.data.length > paginationEnd,
+          data: file.data.slice(paginationStart, paginationEnd)
+        }
+        res.status(200).end(JSON.stringify(paginatedFile, null, ' '));
       } else {
         res.status(500).end('Internal API error.');
       }

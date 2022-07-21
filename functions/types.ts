@@ -5,18 +5,12 @@ import type { Address } from 'weaverfi/dist/types';
 
 /* ========================================================================================================================================================================= */
 
-// File Interfaces:
-export interface Files {
-  deposits: File | undefined
-  withdrawals: File | undefined
-  claims: File | undefined
-  yield: File | undefined
-  supply: File | undefined
-  delegationsCreated: File | undefined
-  delegationsFunded: File | undefined
-  delegationsUpdated: File | undefined
-  delegationsWithdrawn: File | undefined
-}
+// Files Type:
+export type Files = 'deposits' | 'withdrawals' | 'claims' | 'yield' | 'supply' | 'delegationsCreated' | 'delegationsFunded' | 'delegationsUpdated' | 'delegationsWithdrawn';
+
+/* ========================================================================================================================================================================= */
+
+// File Interface:
 export interface File {
   lastQueriedBlock: number
   data: any[]

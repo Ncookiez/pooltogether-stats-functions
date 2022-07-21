@@ -45,6 +45,22 @@
               "avax",
               "op"
             ]
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page of data to return.",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of results in each page.",
+            "required": false,
+            "type": "integer",
+            "default": 1000
           }
         ],
         "responses": {
@@ -82,6 +98,22 @@
               "avax",
               "op"
             ]
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page of data to return. (Default `0`)",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of results in each page. (Default `1000`)",
+            "required": false,
+            "type": "integer",
+            "default": 1000
           }
         ],
         "responses": {
@@ -119,6 +151,22 @@
               "avax",
               "op"
             ]
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page of data to return. (Default `0`)",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of results in each page. (Default `1000`)",
+            "required": false,
+            "type": "integer",
+            "default": 1000
           }
         ],
         "responses": {
@@ -156,6 +204,22 @@
               "avax",
               "op"
             ]
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page of data to return. (Default `0`)",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of results in each page. (Default `1000`)",
+            "required": false,
+            "type": "integer",
+            "default": 1000
           }
         ],
         "responses": {
@@ -193,6 +257,22 @@
               "avax",
               "op"
             ]
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page of data to return. (Default `0`)",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of results in each page. (Default `1000`)",
+            "required": false,
+            "type": "integer",
+            "default": 1000
           }
         ],
         "responses": {
@@ -230,6 +310,22 @@
               "avax",
               "op"
             ]
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page of data to return. (Default `0`)",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of results in each page. (Default `1000`)",
+            "required": false,
+            "type": "integer",
+            "default": 1000
           }
         ],
         "responses": {
@@ -267,6 +363,22 @@
               "avax",
               "op"
             ]
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page of data to return. (Default `0`)",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of results in each page. (Default `1000`)",
+            "required": false,
+            "type": "integer",
+            "default": 1000
           }
         ],
         "responses": {
@@ -304,6 +416,22 @@
               "avax",
               "op"
             ]
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page of data to return. (Default `0`)",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of results in each page. (Default `1000`)",
+            "required": false,
+            "type": "integer",
+            "default": 1000
           }
         ],
         "responses": {
@@ -341,6 +469,22 @@
               "avax",
               "op"
             ]
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page of data to return. (Default `0`)",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of results in each page. (Default `1000`)",
+            "required": false,
+            "type": "integer",
+            "default": 1000
           }
         ],
         "responses": {
@@ -363,6 +507,12 @@
       "properties": {
         "lastQueriedBlock": {
           "type": "integer"
+        },
+        "page": {
+          "type": "integer"
+        },
+        "hasNextPage": {
+          "type": "boolean"
         },
         "data": {
           "type": "array",
@@ -395,6 +545,12 @@
         "lastQueriedBlock": {
           "type": "integer"
         },
+        "page": {
+          "type": "integer"
+        },
+        "hasNextPage": {
+          "type": "boolean"
+        },
         "data": {
           "type": "array",
           "items": {
@@ -425,6 +581,12 @@
       "properties": {
         "lastQueriedBlock": {
           "type": "integer"
+        },
+        "page": {
+          "type": "integer"
+        },
+        "hasNextPage": {
+          "type": "boolean"
         },
         "data": {
           "type": "array",
@@ -460,6 +622,12 @@
         "lastQueriedBlock": {
           "type": "integer"
         },
+        "page": {
+          "type": "integer"
+        },
+        "hasNextPage": {
+          "type": "boolean"
+        },
         "data": {
           "type": "array",
           "items": {
@@ -488,6 +656,12 @@
         "lastQueriedBlock": {
           "type": "integer"
         },
+        "page": {
+          "type": "integer"
+        },
+        "hasNextPage": {
+          "type": "boolean"
+        },
         "data": {
           "type": "array",
           "items": {
@@ -515,6 +689,12 @@
       "properties": {
         "lastQueriedBlock": {
           "type": "integer"
+        },
+        "page": {
+          "type": "integer"
+        },
+        "hasNextPage": {
+          "type": "boolean"
         },
         "data": {
           "type": "array",
@@ -547,6 +727,12 @@
         "lastQueriedBlock": {
           "type": "integer"
         },
+        "page": {
+          "type": "integer"
+        },
+        "hasNextPage": {
+          "type": "boolean"
+        },
         "data": {
           "type": "array",
           "items": {
@@ -578,6 +764,12 @@
         "lastQueriedBlock": {
           "type": "integer"
         },
+        "page": {
+          "type": "integer"
+        },
+        "hasNextPage": {
+          "type": "boolean"
+        },
         "data": {
           "type": "array",
           "items": {
@@ -608,6 +800,12 @@
       "properties": {
         "lastQueriedBlock": {
           "type": "integer"
+        },
+        "page": {
+          "type": "integer"
+        },
+        "hasNextPage": {
+          "type": "boolean"
         },
         "data": {
           "type": "array",
