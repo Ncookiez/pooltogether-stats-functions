@@ -46,6 +46,7 @@ const apiMemory: string = '256MB';
 const apiTimeout: number = 60;
 const apiMaxInstances: number = 100;
 const defaultPageSize: number = 1000;
+const cacheTimeAliveInSeconds: number = 3600;
 
 /* ========================================================================================================================================================================= */
 
@@ -173,6 +174,7 @@ chains.forEach(chain => {
         if(file.timestamp) {
           paginatedFile.timestamp = file.timestamp;
         }
+        res.set('Cache-control', `public, max-age=${cacheTimeAliveInSeconds}`);
         res.status(200).end(JSON.stringify(paginatedFile, null, ' '));
       } else {
         res.status(500).end('Internal API error.');
