@@ -3,13 +3,13 @@
 const ethers = require('ethers');
 
 // Imports:
-import { query, queryBlocks, parseBN } from 'weaverfi/dist/functions';
+import { query, queryBlocks, parseBN, multicallOneContractQuery } from 'weaverfi/dist/functions';
 import { prizePoolABI, prizeDistributorABI, ticketABI, flushABI, aaveUSDCABI, twabDelegatorABI } from './ABIs';
 
 // Type Imports:
 import type { Event } from 'ethers';
-import type { Chain } from 'weaverfi/dist/types';
-import type { ChainInfo, Files, File, Deposit, Withdrawal, Claim, YieldCapture, Supply, DelegationCreated, DelegationFunded, DelegationUpdated, DelegationWithdrawn } from './types';
+import type { Chain, Address, CallContext } from 'weaverfi/dist/types';
+import type { ChainInfo, Files, File, Deposit, Withdrawal, Claim, Balance, YieldCapture, Supply, DelegationCreated, DelegationFunded, DelegationUpdated, DelegationWithdrawn } from './types';
 
 /* ========================================================================================================================================================================= */
 
@@ -75,6 +75,7 @@ export const queryData = async (chain: Chain, files: Record<Files, File | undefi
     files.deposits = await queryDeposits(chain, files.deposits, currentBlock);
     files.withdrawals = await queryWithdrawals(chain, files.withdrawals, currentBlock);
     files.claims = await queryClaims(chain, files.claims, currentBlock);
+    files.balances = await queryBalances(chain, currentBlock, files.deposits, files.withdrawals, files.claims);
     files.yield = await queryYield(chain, files.yield, currentBlock);
     files.supply = await querySupply(chain, files.supply, currentBlock);
     files.delegationsCreated = await queryDelegationsCreated(chain, files.delegationsCreated, currentBlock);
@@ -93,7 +94,7 @@ const queryDeposits = async (chain: Chain, file: File | undefined, currentBlock:
   if(file && chainInfo) {
     const depositEvents = await queryBlocks(chain, chainInfo.prizePool, prizePoolABI, 'Deposited', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
     if(depositEvents.length > 0) {
-      console.info(`${chain.toUpperCase()}: Found ${depositEvents.length} new deposit events.`);
+      console.info(`${chain.toUpperCase()}: Found ${depositEvents.length.toLocaleString(undefined)} new deposit events.`);
       for(let event of depositEvents) {
         if(event.args) {
           const deposit: Deposit = {
@@ -118,7 +119,7 @@ const queryWithdrawals = async (chain: Chain, file: File | undefined, currentBlo
   if(file && chainInfo) {
     const withdrawalEvents = await queryBlocks(chain, chainInfo.prizePool, prizePoolABI, 'Withdrawal', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
     if(withdrawalEvents.length > 0) {
-      console.info(`${chain.toUpperCase()}: Found ${withdrawalEvents.length} new withdrawal events.`);
+      console.info(`${chain.toUpperCase()}: Found ${withdrawalEvents.length.toLocaleString(undefined)} new withdrawal events.`);
       for(let event of withdrawalEvents) {
         if(event.args) {
           const withdrawal: Withdrawal = {
@@ -143,7 +144,7 @@ const queryClaims = async (chain: Chain, file: File | undefined, currentBlock: n
   if(file && chainInfo) {
     const claimEvents = await queryBlocks(chain, chainInfo.prizeDistributor, prizeDistributorABI, 'ClaimedDraw', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
     if(claimEvents.length > 0) {
-      console.info(`${chain.toUpperCase()}: Found ${claimEvents.length} new claim events.`);
+      console.info(`${chain.toUpperCase()}: Found ${claimEvents.length.toLocaleString(undefined)} new claim events.`);
       for(let event of claimEvents) {
         if(event.args) {
           const prize = Math.ceil(parseBN(event.args.payout) / (10 ** 6));
@@ -153,7 +154,7 @@ const queryClaims = async (chain: Chain, file: File | undefined, currentBlock: n
               txHash: event.transactionHash,
               block: event.blockNumber,
               timestamp: await getEventTimestamp(chain, event),
-              wallet: event.args.operator,
+              wallet: event.args.user,
               prizes: [prize]
             }
             file.data.push(claim);
@@ -168,13 +169,61 @@ const queryClaims = async (chain: Chain, file: File | undefined, currentBlock: n
   return file;
 }
 
+// Function to query wallet balances:
+const queryBalances = async (chain: Chain, currentBlock: number, deposits: File | undefined, withdrawals: File | undefined, claims: File | undefined) => {
+  const chainInfo = chains[chain];
+  let balances: File | undefined = undefined;
+  if(chainInfo && deposits && withdrawals && claims) {
+    const wallets: Address[] = [];
+    const newBalanceData: Balance[] = [];
+    const balanceCalls: CallContext[] = [];
+    const callsBatchSize = 500;
+    let balanceCallsMade = 0;
+    deposits.data.forEach((entry: Deposit) => {
+      if(!wallets.includes(entry.wallet)) {
+        wallets.push(entry.wallet);
+      }
+    });
+    withdrawals.data.forEach((entry: Withdrawal) => {
+      if(!wallets.includes(entry.wallet)) {
+        wallets.push(entry.wallet);
+      }
+    });
+    claims.data.forEach((entry: Claim) => {
+      if(!wallets.includes(entry.wallet)) {
+        wallets.push(entry.wallet);
+      }
+    });
+    wallets.forEach(wallet => {
+      balanceCalls.push({ reference: wallet, methodName: 'balanceOf', methodParameters: [wallet] });
+    });
+    while(balanceCallsMade < balanceCalls.length) {
+      let lastCallIndex = Math.min(balanceCallsMade + callsBatchSize,  balanceCalls.length);
+      let multicallResults = await multicallOneContractQuery(chain, chainInfo.ticket, ticketABI, balanceCalls.slice(balanceCallsMade, lastCallIndex));
+      balanceCallsMade = lastCallIndex;
+      for(let stringWallet in multicallResults) {
+        let wallet = stringWallet as Address;
+        let balance = parseBN(multicallResults[stringWallet][0]) / (10 ** 6);
+        newBalanceData.push({ wallet, balance });
+      }
+    }
+    console.info(`${chain.toUpperCase()}: Queried ${wallets.length.toLocaleString(undefined)} wallet balances.`);
+    balances = {
+      lastQueriedBlock: currentBlock,
+      timestamp: await getBlockTimestamp(chain, currentBlock),
+      data: newBalanceData
+    }
+  }
+  return balances;
+}
+
 // Function to query yield:
 const queryYield = async (chain: Chain, file: File | undefined, currentBlock: number) => {
   const chainInfo = chains[chain];
   if(file && chainInfo) {
     const flushEvents = await queryBlocks(chain, chainInfo.flush, flushABI, 'Flushed', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
     if(flushEvents.length > 0) {
-      console.info(`${chain.toUpperCase()}: Found ${flushEvents.length} new flush events.`);
+      console.info(`${chain.toUpperCase()}: Found ${flushEvents.length.toLocaleString(undefined)} new flush events.`);
       for(let event of flushEvents) {
         if(event.args) {
           const yieldCapture: YieldCapture = {
@@ -215,7 +264,7 @@ const queryDelegationsCreated = async (chain: Chain, file: File | undefined, cur
   if(file && chainInfo) {
     const delegationCreationEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'DelegationCreated', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
     if(delegationCreationEvents.length > 0) {
-      console.info(`${chain.toUpperCase()}: Found ${delegationCreationEvents.length} new delegation creation events.`);
+      console.info(`${chain.toUpperCase()}: Found ${delegationCreationEvents.length.toLocaleString(undefined)} new delegation creation events.`);
       for(let event of delegationCreationEvents) {
         if(event.args) {
           const delegationCreated: DelegationCreated = {
@@ -240,7 +289,7 @@ const queryDelegationsFunded = async (chain: Chain, file: File | undefined, curr
   if(file && chainInfo) {
     const delegationFundingEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'DelegationFunded', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
     if(delegationFundingEvents.length > 0) {
-      console.info(`${chain.toUpperCase()}: Found ${delegationFundingEvents.length} new delegation funding events.`);
+      console.info(`${chain.toUpperCase()}: Found ${delegationFundingEvents.length.toLocaleString(undefined)} new delegation funding events.`);
       for(let event of delegationFundingEvents) {
         if(event.args) {
           const delegationFunded: DelegationFunded = {
@@ -265,7 +314,7 @@ const queryDelegationsUpdated = async (chain: Chain, file: File | undefined, cur
   if(file && chainInfo) {
     const delegationUpdateEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'DelegateeUpdated', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
     if(delegationUpdateEvents.length > 0) {
-      console.info(`${chain.toUpperCase()}: Found ${delegationUpdateEvents.length} new delegation update events.`);
+      console.info(`${chain.toUpperCase()}: Found ${delegationUpdateEvents.length.toLocaleString(undefined)} new delegation update events.`);
       for(let event of delegationUpdateEvents) {
         if(event.args) {
           const delegationUpdated: DelegationUpdated = {
@@ -290,7 +339,7 @@ const queryDelegationsWithdrawn = async (chain: Chain, file: File | undefined, c
   if(file && chainInfo) {
     const delegationWithdrawalEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'TransferredDelegation', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
     if(delegationWithdrawalEvents.length > 0) {
-      console.info(`${chain.toUpperCase()}: Found ${delegationWithdrawalEvents.length} new delegation withdrawal events.`);
+      console.info(`${chain.toUpperCase()}: Found ${delegationWithdrawalEvents.length.toLocaleString(undefined)} new delegation withdrawal events.`);
       for(let event of delegationWithdrawalEvents) {
         if(event.args) {
           const delegationWithdrawn: DelegationWithdrawn = {
@@ -330,7 +379,7 @@ const getEventTimestamp = async (chain: Chain, event: Event) => {
           chainInfo.timestamps.push({ block, timestamp });
           return timestamp;
         } catch {
-          console.warn(`Skipping timestamp query for block ${block}`);
+          console.warn(`Skipping timestamp query for block ${block.toLocaleString(undefined)}`);
         }
       }
     }
@@ -356,7 +405,7 @@ const getBlockTimestamp = async (chain: Chain, block: number) => {
           chainInfo.timestamps.push({ block, timestamp });
           return timestamp;
         } catch {
-          console.warn(`Skipping timestamp query for block ${block}`);
+          console.warn(`Skipping timestamp query for block ${block.toLocaleString(undefined)}`);
         }
       }
     }

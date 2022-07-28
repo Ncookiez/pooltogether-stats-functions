@@ -10,8 +10,8 @@ const functions = require('firebase-functions');
 import { queryData } from './queries';
 
 // Type Imports:
-import type { Files, File } from './types';
 import type { Chain } from 'weaverfi/dist/types';
+import type { Files, File, PaginatedFile } from './types';
 import type { Application, Request, Response } from 'express';
 
 // Fetching Firebase Logger Compatibility Patch:
@@ -34,7 +34,7 @@ const swaggerDocs = require('../static/swagger.json');
 // General Settings:
 const storageBucketName: string = 'pooltogether-data';
 const chains: Chain[] = ['eth', 'poly', 'avax', 'op'];
-const fileNames: Files[] = ['deposits', 'withdrawals', 'claims', 'yield', 'supply', 'delegationsCreated', 'delegationsFunded', 'delegationsUpdated', 'delegationsWithdrawn'];
+const fileNames: Files[] = ['deposits', 'withdrawals', 'claims', 'balances', 'yield', 'supply', 'delegationsCreated', 'delegationsFunded', 'delegationsUpdated', 'delegationsWithdrawn'];
 
 // Query Settings:
 const queryFrequencyInHours: number = 6;
@@ -85,6 +85,7 @@ const fetchAllFiles = async (chain: Chain) => {
     deposits: await fetchFile(`${chain}/deposits.json`),
     withdrawals: await fetchFile(`${chain}/withdrawals.json`),
     claims: await fetchFile(`${chain}/claims.json`),
+    balances: await fetchFile(`${chain}/balances.json`),
     yield: await fetchFile(`${chain}/yield.json`),
     supply: await fetchFile(`${chain}/supply.json`),
     delegationsCreated: await fetchFile(`${chain}/delegationsCreated.json`),
@@ -163,11 +164,14 @@ chains.forEach(chain => {
         const pageSize = req.query.pageSize != undefined ? parseInt(req.query.pageSize as string) : defaultPageSize;
         const paginationStart = page * pageSize;
         const paginationEnd = paginationStart + pageSize;
-        const paginatedFile = {
+        const paginatedFile: PaginatedFile = {
           lastQueriedBlock: file.lastQueriedBlock,
           page: page,
           hasNextPage: file.data.length > paginationEnd,
           data: file.data.slice(paginationStart, paginationEnd)
+        };
+        if(file.timestamp) {
+          paginatedFile.timestamp = file.timestamp;
         }
         res.status(200).end(JSON.stringify(paginatedFile, null, ' '));
       } else {

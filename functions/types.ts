@@ -6,13 +6,23 @@ import type { Address } from 'weaverfi/dist/types';
 /* ========================================================================================================================================================================= */
 
 // Files Type:
-export type Files = 'deposits' | 'withdrawals' | 'claims' | 'yield' | 'supply' | 'delegationsCreated' | 'delegationsFunded' | 'delegationsUpdated' | 'delegationsWithdrawn';
+export type Files = 'deposits' | 'withdrawals' | 'claims' | 'balances' | 'yield' | 'supply' | 'delegationsCreated' | 'delegationsFunded' | 'delegationsUpdated' | 'delegationsWithdrawn';
 
 /* ========================================================================================================================================================================= */
 
 // File Interface:
 export interface File {
   lastQueriedBlock: number
+  timestamp?: number
+  data: any[]
+}
+
+// Paginated File Interface:
+export interface PaginatedFile {
+  lastQueriedBlock: number
+  timestamp?: number
+  page: number
+  hasNextPage: boolean
   data: any[]
 }
 
@@ -55,6 +65,12 @@ export interface Claim {
   timestamp: number | undefined
   wallet: Address
   prizes: number[]
+}
+
+// Balance Interface:
+export interface Balance {
+  wallet: Address
+  balance: number
 }
 
 // Yield Capture Interface:

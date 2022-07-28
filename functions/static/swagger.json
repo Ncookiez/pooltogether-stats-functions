@@ -182,6 +182,59 @@
         }
       }
     },
+    "/{chain}/balances": {
+      "get": {
+        "tags": [
+          "General Usage"
+        ],
+        "summary": "Gets a list of all user balances on a specific chain.",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "chain",
+            "in": "path",
+            "description": "Blockchain to query data from.",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "eth",
+              "poly",
+              "avax",
+              "op"
+            ]
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page of data to return. (Default `0`)",
+            "required": false,
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of results in each page. (Default `1000`)",
+            "required": false,
+            "type": "integer",
+            "default": 1000
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful query.",
+            "schema": {
+              "$ref": "#/definitions/Balances"
+            }
+          },
+          "500": {
+            "description": "Internal API error."
+          }
+        }
+      }
+    },
     "/{chain}/yield": {
       "get": {
         "tags": [
@@ -610,6 +663,37 @@
                 "items": {
                   "type": "number"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Balances": {
+      "type": "object",
+      "properties": {
+        "lastQueriedBlock": {
+          "type": "integer"
+        },
+        "timestamp": {
+          "type": "integer"
+        },
+        "page": {
+          "type": "integer"
+        },
+        "hasNextPage": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "wallet": {
+                "type": "string"
+              },
+              "balance": {
+                "type": "integer"
               }
             }
           }
