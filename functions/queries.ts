@@ -211,7 +211,7 @@ const queryBalances = async (chain: Chain, currentBlock: number, deposits: File 
     balances = {
       lastQueriedBlock: currentBlock,
       timestamp: await getBlockTimestamp(chain, currentBlock),
-      data: newBalanceData
+      data: newBalanceData.sort((a, b) => b.balance - a.balance)
     }
   }
   return balances;

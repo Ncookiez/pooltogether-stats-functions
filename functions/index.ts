@@ -39,11 +39,11 @@ const fileNames: Files[] = ['deposits', 'withdrawals', 'claims', 'balances', 'yi
 // Query Settings:
 const queryFrequencyInHours: number = 6;
 const queryMemory: string = '512MB';
-const queryTimeout: number = 540;
+const queryTimeoutInSeconds: number = 540;
 
 // API Settings:
 const apiMemory: string = '256MB';
-const apiTimeout: number = 60;
+const apiTimeoutInSeconds: number = 120;
 const apiMaxInstances: number = 100;
 const defaultPageSize: number = 1000;
 const cacheTimeAliveInSeconds: number = 3600;
@@ -110,7 +110,7 @@ const saveAllFiles = async (chain: Chain, files: Record<Files, File | undefined>
 /* ========================================================================================================================================================================= */
 
 // Ethereum Query Function:
-exports.ethDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
+exports.ethDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeoutInSeconds }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
   const chain: Chain = 'eth';
   const files = await fetchAllFiles(chain);
   const newFiles = await queryData(chain, files);
@@ -119,7 +119,7 @@ exports.ethDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds
 });
 
 // Polygon Query Function:
-exports.polyDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
+exports.polyDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeoutInSeconds }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
   const chain: Chain = 'poly';
   const files = await fetchAllFiles(chain);
   const newFiles = await queryData(chain, files);
@@ -128,7 +128,7 @@ exports.polyDataQueries = functions.runWith({ memory: queryMemory, timeoutSecond
 });
 
 // Avalanche Query Function:
-exports.avaxDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
+exports.avaxDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeoutInSeconds }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
   const chain: Chain = 'avax';
   const files = await fetchAllFiles(chain);
   const newFiles = await queryData(chain, files);
@@ -137,7 +137,7 @@ exports.avaxDataQueries = functions.runWith({ memory: queryMemory, timeoutSecond
 });
 
 // Optimism Query Function:
-exports.opDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeout }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
+exports.opDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeoutInSeconds }).pubsub.schedule(`every ${queryFrequencyInHours} hours`).onRun(async () => {
   const chain: Chain = 'op';
   const files = await fetchAllFiles(chain);
   const newFiles = await queryData(chain, files);
@@ -194,4 +194,4 @@ api.all('*', (req: Request, res: Response) => {
 });
 
 // API Function:
-exports.api = functions.runWith({ memory: apiMemory, timeoutSeconds: apiTimeout, maxInstances: apiMaxInstances }).https.onRequest(api);
+exports.api = functions.runWith({ memory: apiMemory, timeoutSeconds: apiTimeoutInSeconds, maxInstances: apiMaxInstances }).https.onRequest(api);
