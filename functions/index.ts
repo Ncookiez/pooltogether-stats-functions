@@ -37,7 +37,7 @@ const chains: Chain[] = ['eth', 'poly', 'avax', 'op'];
 const fileNames: Files[] = ['deposits', 'withdrawals', 'claims', 'balances', 'yield', 'supply', 'delegationsCreated', 'delegationsFunded', 'delegationsUpdated', 'delegationsWithdrawn'];
 
 // Query Settings:
-const queryFrequencyInHours: number = 6;
+const queryFrequencyInHours: number = 3;
 const queryMemory: string = '512MB';
 const queryTimeoutInSeconds: number = 540;
 

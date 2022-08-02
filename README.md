@@ -16,7 +16,7 @@ These are multiple chain-specific scheduled cloud functions, querying for all up
 
 This data is saved in storage buckets on Firebase, where they can be easily queried.
 
-Currently, these functions run every `6 hours`.
+Currently, these functions run every `3 hours`.
 
 ### API
 
@@ -35,3 +35,17 @@ These cloud functions are ready for deployment through Firebase:
 3. Create a storage bucket and set its name on `functions/index.ts`.
 
 4. Use `firebase deploy` to deploy the functions.
+
+## Manual Data Updates
+
+If for some reason the functions have fallen behind and a large update is needed, they may time out before completion.
+
+In that case, a manual update may be required. To perform one, do the following:
+
+1. Download a chain's current data into a `functions/data/` folder.
+
+2. Set the chain in the `functions/update.ts` file, near the top.
+
+3. Navigate to the `functions` folder and use `npm run update` to perform the updates.
+
+4. Upload the up-to-date data to your storage bucket.

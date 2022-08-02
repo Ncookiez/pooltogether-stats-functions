@@ -2,7 +2,8 @@
   "name": "pooltogether-stats-functions",
   "private": true,
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "update": "tsc && node lib/update.js"
   },
   "engines": {
     "node": "16"
