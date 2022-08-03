@@ -46,7 +46,7 @@ const apiMemory: string = '256MB';
 const apiTimeoutInSeconds: number = 120;
 const apiMaxInstances: number = 100;
 const defaultPageSize: number = 1000;
-const cacheTimeAliveInSeconds: number = 3600;
+const cacheTimeAliveInSeconds: number = 10800;
 
 /* ========================================================================================================================================================================= */
 
