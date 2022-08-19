@@ -34,7 +34,8 @@ const swaggerDocs = require('../static/swagger.json');
 // General Settings:
 const storageBucketName: string = 'pooltogether-data';
 const chains: Chain[] = ['eth', 'poly', 'avax', 'op'];
-const fileNames: Files[] = ['deposits', 'withdrawals', 'claims', 'balances', 'yield', 'supply', 'delegationsCreated', 'delegationsFunded', 'delegationsUpdated', 'delegationsWithdrawn'];
+const fileNames: Files[] = ['deposits', 'withdrawals', 'claims', 'balances', 'yield', 'supply', 'delegationsCreated', 'delegationsFunded', 'delegationsUpdated', 'delegationsWithdrawn', 'stats'];
+const noPagination: Files[] = ['stats'];
 
 // Query Settings:
 const queryFrequencyInHours: number = 3;
@@ -92,7 +93,9 @@ const fetchAllFiles = async (chain: Chain) => {
     delegationsCreated: await fetchFile(`${chain}/delegationsCreated.json`),
     delegationsFunded: await fetchFile(`${chain}/delegationsFunded.json`),
     delegationsUpdated: await fetchFile(`${chain}/delegationsUpdated.json`),
-    delegationsWithdrawn: await fetchFile(`${chain}/delegationsWithdrawn.json`)
+    delegationsWithdrawn: await fetchFile(`${chain}/delegationsWithdrawn.json`),
+    wallets: undefined,
+    stats: undefined
   }
   return files;
 }
@@ -161,21 +164,26 @@ chains.forEach(chain => {
     api.get(`/${chain}/${fileName}`, async (req: Request, res: Response) => {
       const file = await fetchFile(`${chain}/${fileName}.json`);
       if(file) {
-        const page = req.query.page != undefined ? parseInt(req.query.page as string) : 0;
-        const pageSize = req.query.pageSize != undefined ? parseInt(req.query.pageSize as string) : defaultPageSize;
-        const paginationStart = page * pageSize;
-        const paginationEnd = paginationStart + pageSize;
-        const paginatedFile: PaginatedFile = {
-          lastQueriedBlock: file.lastQueriedBlock,
-          page: page,
-          hasNextPage: file.data.length > paginationEnd,
-          data: file.data.slice(paginationStart, paginationEnd)
-        };
-        if(file.timestamp) {
-          paginatedFile.timestamp = file.timestamp;
+        if(!noPagination.includes(fileName)) {
+          const page = req.query.page != undefined ? parseInt(req.query.page as string) : 0;
+          const pageSize = req.query.pageSize != undefined ? parseInt(req.query.pageSize as string) : defaultPageSize;
+          const paginationStart = page * pageSize;
+          const paginationEnd = paginationStart + pageSize;
+          const paginatedFile: PaginatedFile = {
+            lastQueriedBlock: file.lastQueriedBlock,
+            page: page,
+            hasNextPage: file.data.length > paginationEnd,
+            data: file.data.slice(paginationStart, paginationEnd)
+          };
+          if(file.timestamp) {
+            paginatedFile.timestamp = file.timestamp;
+          }
+          res.set('Cache-control', `public, max-age=${cacheTimeAliveInSeconds}`);
+          res.status(200).end(JSON.stringify(paginatedFile, null, ' '));
+        } else {
+          res.set('Cache-control', `public, max-age=${cacheTimeAliveInSeconds}`);
+          res.status(200).end(JSON.stringify(file, null, ' '));
         }
-        res.set('Cache-control', `public, max-age=${cacheTimeAliveInSeconds}`);
-        res.status(200).end(JSON.stringify(paginatedFile, null, ' '));
       } else {
         res.status(500).end('Internal API error.');
       }

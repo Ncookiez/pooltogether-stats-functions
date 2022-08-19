@@ -552,6 +552,43 @@
           }
         }
       }
+    },
+    "/{chain}/stats": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "summary": "Gets many pre-calculated stats of any particular chain, useful for quick charting.",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "chain",
+            "in": "path",
+            "description": "Blockchain to query data from.",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "eth",
+              "poly",
+              "avax",
+              "op"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful query.",
+            "schema": {
+              "$ref": "#/definitions/Stats"
+            }
+          },
+          "500": {
+            "description": "Internal API error."
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -910,6 +947,31 @@
               },
               "amount": {
                 "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "Stats": {
+      "type": "object",
+      "properties": {
+        "lastQueriedBlock": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "minTimestamp": {
+                "type": "integer"
+              },
+              "maxTimestamp": {
+                "type": "integer"
+              },
+              "exampleData": {
+                "type": "object"
               }
             }
           }

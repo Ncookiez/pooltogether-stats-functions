@@ -3,13 +3,14 @@
 const ethers = require('ethers');
 
 // Imports:
+import { getStats } from './stats';
 import { query, queryBlocks, parseBN, multicallOneContractQuery } from 'weaverfi/dist/functions';
 import { prizePoolABI, prizeDistributorABI, ticketABI, flushABI, aaveUSDCABI, twabDelegatorABI } from './ABIs';
 
 // Type Imports:
 import type { Event } from 'ethers';
 import type { Chain, Address, CallContext } from 'weaverfi/dist/types';
-import type { ChainInfo, Files, File, Deposit, Withdrawal, Claim, Balance, YieldCapture, Supply, DelegationCreated, DelegationFunded, DelegationUpdated, DelegationWithdrawn } from './types';
+import type { ChainInfo, ChainData, Files, File, Deposit, Withdrawal, Claim, Balance, YieldCapture, Supply, DelegationCreated, DelegationFunded, DelegationUpdated, DelegationWithdrawn, WalletData } from './types';
 
 /* ========================================================================================================================================================================= */
 
@@ -71,7 +72,11 @@ const chains: Partial<Record<Chain, ChainInfo>> = {
 export const queryData = async (chain: Chain, files: Record<Files, File | undefined>) => {
   const chainInfo = chains[chain];
   if(chainInfo) {
+
+    // Getting Current Block:
     const currentBlock = await chainInfo.provider.getBlockNumber();
+
+    // Querying Chain Data:
     files.deposits = await queryDeposits(chain, files.deposits, currentBlock);
     files.withdrawals = await queryWithdrawals(chain, files.withdrawals, currentBlock);
     files.claims = await queryClaims(chain, files.claims, currentBlock);
@@ -82,6 +87,11 @@ export const queryData = async (chain: Chain, files: Record<Files, File | undefi
     files.delegationsFunded = await queryDelegationsFunded(chain, files.delegationsFunded, currentBlock);
     files.delegationsUpdated = await queryDelegationsUpdated(chain, files.delegationsUpdated, currentBlock);
     files.delegationsWithdrawn = await queryDelegationsWithdrawn(chain, files.delegationsWithdrawn, currentBlock);
+
+    // Getting Extra Data:
+    const chainData: ChainData = [chain, files.deposits, files.withdrawals, files.claims, files.balances, files.delegationsCreated, files.delegationsFunded, files.delegationsUpdated, files.delegationsWithdrawn, currentBlock];
+    files.wallets = getWalletData(...chainData);
+    files.stats = await getStats(...chainData, files.yield, files.wallets);
   }
   return files;
 }
@@ -360,6 +370,61 @@ const queryDelegationsWithdrawn = async (chain: Chain, file: File | undefined, c
 
 /* ========================================================================================================================================================================= */
 
+// Function to get aggregated wallet data:
+const getWalletData = (chain: Chain, deposits: File | undefined, withdrawals: File | undefined, claims: File | undefined, balances: File | undefined, delegationsCreated: File | undefined, delegationsFunded: File | undefined, delegationsUpdated: File | undefined, delegationsWithdrawn: File | undefined, currentBlock: number) => {
+  if(deposits && withdrawals && claims && balances && delegationsCreated && delegationsFunded && delegationsUpdated && delegationsWithdrawn) {
+    const file: File = { lastQueriedBlock: currentBlock, data: [] };
+    const wallets: Record<Address, WalletData> = {};
+    (balances.data as Balance[]).forEach(entry => {
+      wallets[entry.wallet] = { txs: [], currentBalance: entry.balance };
+    });
+    (deposits.data as Deposit[]).forEach(deposit => {
+      if(deposit.timestamp) {
+        wallets[deposit.wallet].txs.push({ type: 'deposit', data: deposit });
+      }
+    });
+    (withdrawals.data as Withdrawal[]).forEach(withdrawal => {
+      if(withdrawal.timestamp) {
+        wallets[withdrawal.wallet].txs.push({ type: 'withdrawal', data: withdrawal });
+      }
+    });
+    (claims.data as Claim[]).forEach(claim => {
+      if(claim.timestamp) {
+        wallets[claim.wallet].txs.push({ type: 'claim', data: claim });
+      }
+    });
+    (delegationsCreated.data as DelegationCreated[]).forEach(delegation => {
+      if(wallets[delegation.delegator] && delegation.timestamp) {
+        wallets[delegation.delegator].txs.push({ type: 'delegationCreated', data: delegation });
+      }
+    });
+    (delegationsFunded.data as DelegationFunded[]).forEach(delegation => {
+      if(wallets[delegation.delegator] && delegation.timestamp) {
+        wallets[delegation.delegator].txs.push({ type: 'delegationFunded', data: delegation });
+      }
+    });
+    (delegationsUpdated.data as DelegationUpdated[]).forEach(delegation => {
+      if(wallets[delegation.delegator] && delegation.timestamp) {
+        wallets[delegation.delegator].txs.push({ type: 'delegationUpdated', data: delegation });
+      }
+    });
+    (delegationsWithdrawn.data as DelegationWithdrawn[]).forEach(delegation => {
+      if(wallets[delegation.delegator] && delegation.timestamp) {
+        wallets[delegation.delegator].txs.push({ type: 'delegationWithdrawn', data: delegation });
+      }
+    });
+    for(let stringWallet in wallets) {
+      const wallet = stringWallet as Address;
+      wallets[wallet].txs.sort((a, b) => (a.data.timestamp as number) - (b.data.timestamp as number));
+      file.data.push({ wallet: wallet, data: wallets[wallet] });
+    }
+    console.info(`${chain.toUpperCase()}: Filtered through data of ${file.data.length.toLocaleString(undefined)} wallets.`);
+    return file;
+  }
+}
+
+/* ========================================================================================================================================================================= */
+
 // Helper function to query event timestamp:
 const getEventTimestamp = async (chain: Chain, event: Event) => {
   const chainInfo = chains[chain];
@@ -411,4 +476,11 @@ const getBlockTimestamp = async (chain: Chain, block: number) => {
     }
   }
   return undefined;
+}
+
+// Helper function to get chain-specific timestamps:
+export const getChainTimestamps = async (chain: Chain, deposits: Deposit[], currentBlock: number) => {
+  const minTimestamp = deposits[0].timestamp as number;
+  const maxTimestamp = (await getBlockTimestamp(chain, currentBlock)) as number;
+  return [minTimestamp, maxTimestamp];
 }
