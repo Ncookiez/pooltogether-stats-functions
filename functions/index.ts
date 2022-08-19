@@ -39,7 +39,7 @@ const noPagination: Files[] = ['stats'];
 
 // Query Settings:
 const queryFrequencyInHours: number = 3;
-const queryMemory: string = '512MB';
+const queryMemory: string = '1024MB';
 const queryTimeoutInSeconds: number = 540;
 
 // API Settings:
