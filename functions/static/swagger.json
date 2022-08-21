@@ -589,6 +589,40 @@
           }
         }
       }
+    },
+    "/wallet": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "summary": "Gets many stats of any particular wallet.",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "description": "Wallet address to query for.",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful query.",
+            "schema": {
+              "$ref": "#/definitions/PlayerData"
+            }
+          },
+          "400": {
+            "description": "Invalid query."
+          },
+          "500": {
+            "description": "Internal API error."
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -973,6 +1007,64 @@
               "exampleData": {
                 "type": "object"
               }
+            }
+          }
+        }
+      }
+    },
+    "PlayerData": {
+      "type": "object",
+      "properties": {
+        "txs": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "timestamps": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "depositsOverTime": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "claimsOverTime": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "withdrawalsOverTime": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "balancesOverTime": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "balances": {
+          "type": "object",
+          "properties": {
+            "eth": {
+              "type": "integer"
+            },
+            "poly": {
+              "type": "integer"
+            },
+            "avax": {
+              "type": "integer"
+            },
+            "op": {
+              "type": "integer"
             }
           }
         }

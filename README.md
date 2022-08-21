@@ -18,6 +18,12 @@ This data is saved in storage buckets on Firebase, where they can be easily quer
 
 Currently, these functions run every `3 hours`.
 
+## Scheduled Player Data Function
+
+This function runs 10 minutes after on-chain data is queried, in order to parse through all the data acquired and organize it by player (wallet).
+
+This data is neatly put into Firestore, where it can be easily queried.
+
 ### API
 
 This API is a cloud function facilitating data queries from front-end apps.
@@ -35,6 +41,8 @@ These cloud functions are ready for deployment through Firebase:
 3. Create a storage bucket and set its name on `functions/index.ts`.
 
 4. Use `firebase deploy` to deploy the functions.
+
+If you run into function deployment issues, try deploying each function individually through `firebase deploy --only functions:ethDataQueries`, for example.
 
 ## Manual Data Updates
 

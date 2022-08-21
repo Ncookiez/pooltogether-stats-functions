@@ -4,7 +4,7 @@ import { getChainTimestamps } from './queries';
 
 // Type Imports:
 import type { Chain, Address } from 'weaverfi/dist/types';
-import type { File, Deposit, Withdrawal, Claim, Balance, YieldCapture, DelegationCreated, DelegationFunded, DelegationWithdrawn, WalletData, ChainStats, DepositsOverTime, WithdrawalsOverTime, ClaimsOverTime, TVLOverTime, DelegationsOverTime, YieldOverTime, WinlessWithdrawals, TVLDistribution } from './types';
+import type { File, TX, Deposit, Withdrawal, Claim, Balance, YieldCapture, DelegationCreated, DelegationFunded, DelegationWithdrawn, WalletData, ChainStats, DepositsOverTime, WithdrawalsOverTime, ClaimsOverTime, TVLOverTime, DelegationsOverTime, YieldOverTime, WinlessWithdrawals, TVLDistribution } from './types';
 
 // Stats Settings:
 const ticks = 50;
@@ -519,11 +519,62 @@ const getTVLDistribution = (balances: Balance[]) => {
 
 /* ========================================================================================================================================================================= */
 
+// Function to get player data over time:
+export const getPlayerDataOverTime = (txs: TX[]) => {
+
+  // Initializations:
+  const depositsOverTime: number[] = [];
+  const claimsOverTime: number[] = [];
+  const withdrawalsOverTime: number[] = [];
+  const balancesOverTime: number[] = [];
+  let cumulativeDepositAmount = 0;
+  let cumulativeClaimAmount = 0;
+  let cumulativeWithdrawalAmount = 0;
+
+  // Getting Timestamps:
+  txs.sort((a, b) => (a.data.timestamp as number) - (b.data.timestamp as number));
+  const firstTimestamp = txs[0].data.timestamp as number;
+  const lastTimestamp = txs[txs.length - 1].data.timestamp as number;
+  const timestamps = getRangeArray(firstTimestamp, lastTimestamp, true);
+
+  // Getting Data Over Time:
+  for(let i = 0; i < ticks; i++) {
+    let depositAmount = 0;
+    let claimAmount = 0;
+    let withdrawalAmount = 0;
+    txs.forEach(tx => {
+      if(tx.data.timestamp && tx.data.timestamp <= timestamps[i]) {
+        if((1 > 0 && tx.data.timestamp > timestamps[i - 1]) || i === 0) {
+          if(tx.type === 'deposit') {
+            depositAmount += tx.data.amount;
+          } else if(tx.type === 'claim') {
+            claimAmount += tx.data.prizes.reduce((a, b) => a + b, 0);
+          } else if(tx.type === 'withdrawal') {
+            withdrawalAmount += tx.data.amount;
+          }
+        }
+      }
+    });
+    cumulativeDepositAmount += depositAmount;
+    cumulativeClaimAmount += claimAmount;
+    cumulativeWithdrawalAmount += withdrawalAmount;
+    depositsOverTime.push(Math.floor(cumulativeDepositAmount));
+    claimsOverTime.push(Math.floor(cumulativeClaimAmount));
+    withdrawalsOverTime.push(Math.floor(cumulativeWithdrawalAmount));
+    balancesOverTime.push(Math.floor(cumulativeDepositAmount + cumulativeClaimAmount - cumulativeWithdrawalAmount));
+  }
+  
+  return [timestamps, depositsOverTime, claimsOverTime, withdrawalsOverTime, balancesOverTime];
+}
+
+/* ========================================================================================================================================================================= */
+
 // Helper function to get array of numbers:
-const getRangeArray = (start: number, end: number) => {
+export const getRangeArray = (start: number, end: number, includeFirstValue?: boolean) => {
   const range: number[] = [];
   const timespan = end - start;
-  const tick = timespan / ticks;
+  const tick = includeFirstValue ? (timespan / ticks) + (timespan / ticks / ticks) : timespan / ticks;
+  if(includeFirstValue) { range.push(Math.ceil(start)); };
   let value = start;
   while(Math.ceil(value) < end) {
     value += tick;
