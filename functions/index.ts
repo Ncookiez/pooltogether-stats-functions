@@ -217,6 +217,7 @@ exports.playerDataFilter = functions.runWith({ memory: playerDataMemory, timeout
       });
     }
   });
+  console.info(`Filtered basic data for ${Object.keys(allPlayerData).length.toLocaleString(undefined)} players.`);
 
   // Finding Player Data Over Time:
   for(let playerString in allPlayerData) {
@@ -227,6 +228,7 @@ exports.playerDataFilter = functions.runWith({ memory: playerDataMemory, timeout
       playerData.txs.sort((a, b) => (b.data.timestamp as number) - (a.data.timestamp as number));
     }
   }
+  console.info(`Calculated data over time for ${Object.keys(allPlayerData).length.toLocaleString(undefined)} players.`);
 
   // Updating Firestore:
   for(let playerString in allPlayerData) {
@@ -240,10 +242,9 @@ exports.playerDataFilter = functions.runWith({ memory: playerDataMemory, timeout
       batchSize = 0;
     }
   }
-  let promises = batchArray.map(batch => (async () => {
+  for(const batch of batchArray) {
     await batch.commit();
-  })());
-  await Promise.all(promises);
+  }
   console.info(`Updated ${playerDataCollectionName} collection with ${batchIndex.toLocaleString(undefined)} batches (${((499 * batchIndex) + batchSize).toLocaleString(undefined)} docs).`);
 
   return null;
