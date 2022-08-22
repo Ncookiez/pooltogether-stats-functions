@@ -453,7 +453,7 @@ const getEventTimestamp = async (chain: Chain, event: Event) => {
 }
 
 // Helper function to query block timestamp:
-const getBlockTimestamp = async (chain: Chain, block: number) => {
+export const getBlockTimestamp = async (chain: Chain, block: number) => {
   const chainInfo = chains[chain];
   if(chainInfo) {
     let foundEntry = chainInfo.timestamps.find(entry => entry.block === block);

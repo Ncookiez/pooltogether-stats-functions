@@ -8,8 +8,8 @@ const functions = require('firebase-functions');
 
 // Imports:
 import { utils } from 'ethers';
-import { queryData } from './queries';
 import { getPlayerDataOverTime } from './stats';
+import { queryData, getBlockTimestamp } from './queries';
 
 // Type Imports:
 import type { Chain, Address } from 'weaverfi/dist/types';
@@ -51,6 +51,7 @@ const playerDataMemory: string = '2GB';
 const playerDataTimeoutInSeconds: number = 540;
 const playerDataCollectionName: string = 'players';
 const defaultPlayerData: PlayerData = { txs: [], timestamps: [], depositsOverTime: [], claimsOverTime: [], withdrawalsOverTime: [], balancesOverTime: [], balances: { eth: 0, poly: 0, avax: 0, op: 0 } };
+const updateRedundancyInSeconds: number = 36000;
 
 // API Settings:
 const apiMemory: string = '256MB';
@@ -177,9 +178,9 @@ exports.playerDataFilter = functions.runWith({ memory: playerDataMemory, timeout
   const opWallets = await fetchFile(`op/wallets.json`);
 
   // Adding Player Data From Each Chain:
-  chains.forEach(chain => {
-
-    // Initializing Proper Wallets File:
+  let promises = chains.map(chain => (async () => {
+    
+    // Initializing Proper Wallets File & Timestamp:
     let walletsFile: File | undefined;
     if(chain === 'eth') {
       walletsFile = ethWallets;
@@ -192,31 +193,40 @@ exports.playerDataFilter = functions.runWith({ memory: playerDataMemory, timeout
     }
     if(walletsFile) {
 
+      // Finding Last Updated Timestamp:
+      const lastUpdated = await getBlockTimestamp(chain, walletsFile.lastQueriedBlock);
+      const minTimestamp = lastUpdated ? lastUpdated - updateRedundancyInSeconds : 0;
+      console.info(`Filtering ${chain.toUpperCase()} data for wallets with transactions post-${minTimestamp.toLocaleString(undefined)}.`);
+
       // Filtering Through Wallets:
       const wallets = walletsFile.data as { wallet: Address, data: WalletData }[];
       wallets.forEach(entry => {
-        entry.data.txs.forEach(tx => tx.chain = chain);
-        if(!allPlayerData[entry.wallet]) {
-          allPlayerData[entry.wallet] = JSON.parse(JSON.stringify(defaultPlayerData));
-        }
-        allPlayerData[entry.wallet].balances[chain as 'eth' | 'poly' | 'avax' | 'op'] = entry.data.currentBalance;
-        entry.data.txs.forEach(tx => {
-          allPlayerData[entry.wallet].txs.push(tx);
-          if(tx.type === 'delegationCreated' && tx.data.delegatee !== entry.wallet) {
-            if(!allPlayerData[tx.data.delegatee]) {
-              allPlayerData[tx.data.delegatee] = JSON.parse(JSON.stringify(defaultPlayerData));
-            }
-            allPlayerData[tx.data.delegatee].txs.push({ chain: chain, type: 'delegationCreated', data: tx.data });
-          } else if(tx.type === 'delegationUpdated' && tx.data.newDelegatee !== entry.wallet) {
-            if(!allPlayerData[tx.data.newDelegatee]) {
-              allPlayerData[tx.data.newDelegatee] = JSON.parse(JSON.stringify(defaultPlayerData));
-            }
-            allPlayerData[tx.data.newDelegatee].txs.push({ chain: chain, type: 'delegationUpdated', data: tx.data });
+        const foundNewTX = entry.data.txs.find(tx => tx.data.timestamp && tx.data.timestamp > minTimestamp);
+        if(foundNewTX !== undefined) {
+          entry.data.txs.forEach(tx => tx.chain = chain);
+          if(!allPlayerData[entry.wallet]) {
+            allPlayerData[entry.wallet] = JSON.parse(JSON.stringify(defaultPlayerData));
           }
-        });
+          allPlayerData[entry.wallet].balances[chain as 'eth' | 'poly' | 'avax' | 'op'] = entry.data.currentBalance;
+          entry.data.txs.forEach(tx => {
+            allPlayerData[entry.wallet].txs.push(tx);
+            if(tx.type === 'delegationCreated' && tx.data.delegatee !== entry.wallet) {
+              if(!allPlayerData[tx.data.delegatee]) {
+                allPlayerData[tx.data.delegatee] = JSON.parse(JSON.stringify(defaultPlayerData));
+              }
+              allPlayerData[tx.data.delegatee].txs.push({ chain: chain, type: 'delegationCreated', data: tx.data });
+            } else if(tx.type === 'delegationUpdated' && tx.data.newDelegatee !== entry.wallet) {
+              if(!allPlayerData[tx.data.newDelegatee]) {
+                allPlayerData[tx.data.newDelegatee] = JSON.parse(JSON.stringify(defaultPlayerData));
+              }
+              allPlayerData[tx.data.newDelegatee].txs.push({ chain: chain, type: 'delegationUpdated', data: tx.data });
+            }
+          });
+        }
       });
     }
-  });
+  })());
+  await Promise.all(promises);
   console.info(`Filtered basic data for ${Object.keys(allPlayerData).length.toLocaleString(undefined)} players.`);
 
   // Finding Player Data Over Time:
@@ -245,7 +255,7 @@ exports.playerDataFilter = functions.runWith({ memory: playerDataMemory, timeout
   for(const batch of batchArray) {
     await batch.commit();
   }
-  console.info(`Updated ${playerDataCollectionName} collection with ${batchIndex.toLocaleString(undefined)} batches (${((499 * batchIndex) + batchSize).toLocaleString(undefined)} docs).`);
+  console.info(`Updated ${playerDataCollectionName} collection with ${(batchIndex + 1).toLocaleString(undefined)} batch${batchIndex > 0 ? 'es' : ''} (${((499 * batchIndex) + batchSize).toLocaleString(undefined)} docs).`);
 
   return null;
 });
