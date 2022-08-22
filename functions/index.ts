@@ -312,6 +312,7 @@ api.get(`/wallet`, async (req: Request, res: Response) => {
       const playersRef = db.collection(playerDataCollectionName);
       const playerDoc = await playersRef.doc(wallet).get();
       if(playerDoc.exists) {
+        res.set('Cache-control', `public, max-age=${cacheTimeAliveInSeconds}`);
         res.status(200).end(JSON.stringify(playerDoc.data(), null, ' '));
       } else {
         res.status(200).end(JSON.stringify(defaultPlayerData, null, ' '));
