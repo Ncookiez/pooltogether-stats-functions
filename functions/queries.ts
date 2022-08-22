@@ -477,10 +477,3 @@ export const getBlockTimestamp = async (chain: Chain, block: number) => {
   }
   return undefined;
 }
-
-// Helper function to get chain-specific timestamps:
-export const getChainTimestamps = async (chain: Chain, deposits: Deposit[], currentBlock: number) => {
-  const minTimestamp = deposits[0].timestamp as number;
-  const maxTimestamp = (await getBlockTimestamp(chain, currentBlock)) as number;
-  return [minTimestamp, maxTimestamp];
-}
