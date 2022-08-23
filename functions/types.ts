@@ -197,6 +197,7 @@ export interface ChainStats {
   yieldOverTime: YieldOverTime
   winlessWithdrawals: WinlessWithdrawals[]
   tvlDistribution: TVLDistribution
+  currentUsers: Address[]
 }
 
 // Over Time Interfaces:
