@@ -27,7 +27,8 @@ export const getStats = async (chain: Chain, deposits: File | undefined, withdra
     const winlessWithdrawals = getWinlessWithdrawals(wallets.data);
     const tvlDistribution = getTVLDistribution(balances.data);
     const currentUsers = (balances.data as Balance[]).filter(entry => entry.balance > 0).map(entry => entry.wallet);
-    const stats: ChainStats = { minTimestamp, maxTimestamp, depositsOverTime, withdrawalsOverTime, claimsOverTime, tvlOverTime, delegationsOverTime, yieldOverTime, winlessWithdrawals, tvlDistribution, currentUsers };
+    const topWhales = (balances.data as Balance[]).slice(0, 10);
+    const stats: ChainStats = { minTimestamp, maxTimestamp, depositsOverTime, withdrawalsOverTime, claimsOverTime, tvlOverTime, delegationsOverTime, yieldOverTime, winlessWithdrawals, tvlDistribution, currentUsers, topWhales };
     file.data.push(stats);
     console.info(`${chain.toUpperCase()}: Calculated all stats.`);
     return file;

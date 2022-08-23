@@ -198,6 +198,7 @@ export interface ChainStats {
   winlessWithdrawals: WinlessWithdrawals[]
   tvlDistribution: TVLDistribution
   currentUsers: Address[]
+  topWhales: Balance[]
 }
 
 // Over Time Interfaces:
