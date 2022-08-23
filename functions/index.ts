@@ -38,6 +38,7 @@ const swaggerDocs = require('../static/swagger.json');
 const storageBucketName: string = 'pooltogether-data';
 const chains: Chain[] = ['eth', 'poly', 'avax', 'op'];
 const fileNames: Files[] = ['deposits', 'withdrawals', 'claims', 'balances', 'yield', 'supply', 'delegationsCreated', 'delegationsFunded', 'delegationsUpdated', 'delegationsWithdrawn', 'stats'];
+const noSorting: Files[] = ['balances', 'stats'];
 const noPagination: Files[] = ['stats'];
 
 // Query Settings:
@@ -285,7 +286,7 @@ chains.forEach(chain => {
             lastQueriedBlock: file.lastQueriedBlock,
             page: page,
             hasNextPage: file.data.length > paginationEnd,
-            data: file.data.slice(paginationStart, paginationEnd)
+            data: noSorting.includes(fileName) ? file.data.slice(paginationStart, paginationEnd) : file.data.sort((a, b) => b.timestamp - a.timestamp).slice(paginationStart, paginationEnd)
           };
           if(file.timestamp) {
             paginatedFile.timestamp = file.timestamp;
