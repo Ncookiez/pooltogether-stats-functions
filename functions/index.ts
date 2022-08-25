@@ -37,9 +37,9 @@ const swaggerDocs = require('../static/swagger.json');
 // General Settings:
 const storageBucketName: string = 'pooltogether-data';
 const chains: Chain[] = ['eth', 'poly', 'avax', 'op'];
-const fileNames: Files[] = ['deposits', 'withdrawals', 'claims', 'balances', 'yield', 'supply', 'delegationsCreated', 'delegationsFunded', 'delegationsUpdated', 'delegationsWithdrawn', 'stats'];
-const noSorting: Files[] = ['balances', 'stats'];
-const noPagination: Files[] = ['stats'];
+const fileNames: Files[] = ['deposits', 'withdrawals', 'claims', 'balances', 'yield', 'supply', 'delegationsCreated', 'delegationsFunded', 'delegationsUpdated', 'delegationsWithdrawn', 'stats', 'lastDeposits', 'lastDelegations'];
+const noSorting: Files[] = ['balances', 'stats', 'lastDeposits', 'lastDelegations'];
+const noPagination: Files[] = ['stats', 'lastDeposits', 'lastDelegations'];
 
 // Query Settings:
 const querySchedule: string = '0 0,3,6,9,12,15,18,21 * * *';
@@ -107,7 +107,9 @@ const fetchAllFiles = async (chain: Chain) => {
     delegationsUpdated: await fetchFile(`${chain}/delegationsUpdated.json`),
     delegationsWithdrawn: await fetchFile(`${chain}/delegationsWithdrawn.json`),
     wallets: undefined,
-    stats: undefined
+    stats: undefined,
+    lastDeposits: undefined,
+    lastDelegations: undefined
   }
   return files;
 }

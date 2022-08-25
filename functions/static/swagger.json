@@ -590,6 +590,80 @@
         }
       }
     },
+    "/{chain}/lastDeposits": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "summary": "Gets the 1000 most recent deposits on a specific chain.",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "chain",
+            "in": "path",
+            "description": "Blockchain to query data from.",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "eth",
+              "poly",
+              "avax",
+              "op"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful query.",
+            "schema": {
+              "$ref": "#/definitions/LastDeposits"
+            }
+          },
+          "500": {
+            "description": "Internal API error."
+          }
+        }
+      }
+    },
+    "/{chain}/lastDelegations": {
+      "get": {
+        "tags": [
+          "Other"
+        ],
+        "summary": "Gets the 1000 most recent delegations funded on a specific chain.",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "chain",
+            "in": "path",
+            "description": "Blockchain to query data from.",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "eth",
+              "poly",
+              "avax",
+              "op"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful query.",
+            "schema": {
+              "$ref": "#/definitions/LastDelegationsFunded"
+            }
+          },
+          "500": {
+            "description": "Internal API error."
+          }
+        }
+      }
+    },
     "/wallet": {
       "get": {
         "tags": [
@@ -637,6 +711,37 @@
         },
         "hasNextPage": {
           "type": "boolean"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "txHash": {
+                "type": "string"
+              },
+              "block": {
+                "type": "integer"
+              },
+              "timestamp": {
+                "type": "number"
+              },
+              "wallet": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "LastDeposits": {
+      "type": "object",
+      "properties": {
+        "lastQueriedBlock": {
+          "type": "integer"
         },
         "data": {
           "type": "array",
@@ -887,6 +992,37 @@
         },
         "hasNextPage": {
           "type": "boolean"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "txHash": {
+                "type": "string"
+              },
+              "block": {
+                "type": "integer"
+              },
+              "timestamp": {
+                "type": "number"
+              },
+              "delegator": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "LastDelegationsFunded": {
+      "type": "object",
+      "properties": {
+        "lastQueriedBlock": {
+          "type": "integer"
         },
         "data": {
           "type": "array",

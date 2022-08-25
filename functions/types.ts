@@ -6,7 +6,7 @@ import type { Address, Chain } from 'weaverfi/dist/types';
 /* ========================================================================================================================================================================= */
 
 // Files Type:
-export type Files = 'deposits' | 'withdrawals' | 'claims' | 'balances' | 'yield' | 'supply' | 'delegationsCreated' | 'delegationsFunded' | 'delegationsUpdated' | 'delegationsWithdrawn' | 'wallets' | 'stats';
+export type Files = 'deposits' | 'withdrawals' | 'claims' | 'balances' | 'yield' | 'supply' | 'delegationsCreated' | 'delegationsFunded' | 'delegationsUpdated' | 'delegationsWithdrawn' | 'wallets' | 'stats' | 'lastDeposits' | 'lastDelegations';
 
 // Transaction Type:
 export type TX = DepositTX | WithdrawalTX | ClaimTX | DelegationCreatedTX | DelegationFundedTX | DelegationUpdatedTX | DelegationWithdrawnTX;

@@ -12,6 +12,9 @@ import type { Event } from 'ethers';
 import type { Chain, Address, CallContext } from 'weaverfi/dist/types';
 import type { ChainInfo, ChainData, Files, File, Deposit, Withdrawal, Claim, Balance, YieldCapture, Supply, DelegationCreated, DelegationFunded, DelegationUpdated, DelegationWithdrawn, WalletData } from './types';
 
+// Last TXs Settings:
+const numTXs = 1000;
+
 /* ========================================================================================================================================================================= */
 
 // Chain Info:
@@ -92,6 +95,8 @@ export const queryData = async (chain: Chain, files: Record<Files, File | undefi
     const chainData: ChainData = [chain, files.deposits, files.withdrawals, files.claims, files.balances, files.delegationsCreated, files.delegationsFunded, files.delegationsUpdated, files.delegationsWithdrawn, currentBlock];
     files.wallets = getWalletData(...chainData);
     files.stats = await getStats(...chainData, files.yield, files.wallets);
+    files.lastDeposits = getLastDeposits(files.deposits);
+    files.lastDelegations = getLastDelegations(files.delegationsFunded);
   }
   return files;
 }
@@ -420,6 +425,24 @@ const getWalletData = (chain: Chain, deposits: File | undefined, withdrawals: Fi
     }
     console.info(`${chain.toUpperCase()}: Filtered through data of ${file.data.length.toLocaleString(undefined)} wallets.`);
     return file;
+  }
+}
+
+// Function to get last deposits:
+const getLastDeposits = (deposits: File | undefined) => {
+  if(deposits) {
+    const lastDepositsData = deposits.data.slice().reverse().slice(0, numTXs);
+    const lastDeposits: File = { lastQueriedBlock: deposits.lastQueriedBlock, data: lastDepositsData };
+    return lastDeposits;
+  }
+}
+
+// Function to get last delegations funded:
+const getLastDelegations = (delegationsFunded: File | undefined) => {
+  if(delegationsFunded) {
+    const lastDelegationsData = delegationsFunded.data.slice().reverse().slice(0, numTXs);
+    const lastDelegations: File = { lastQueriedBlock: delegationsFunded.lastQueriedBlock, data: lastDelegationsData };
+    return lastDelegations;
   }
 }
 

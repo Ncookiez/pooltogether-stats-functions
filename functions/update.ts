@@ -36,7 +36,9 @@ const readAllFiles = () => {
     delegationsUpdated: readJSON('delegationsUpdated'),
     delegationsWithdrawn: readJSON('delegationsWithdrawn'),
     wallets: undefined,
-    stats: undefined
+    stats: undefined,
+    lastDeposits: undefined,
+    lastDelegations: undefined
   }
   return files;
 }
