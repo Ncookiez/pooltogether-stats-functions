@@ -14,11 +14,13 @@ Cloud functions to automatically update PoolTogether stats.
 
 These are multiple chain-specific scheduled cloud functions, querying for all updated data on a chain since its last runtime.
 
+These functions also calculate many stats to be ready-for-use on the front-end without any further data fetching.
+
 This data is saved in storage buckets on Firebase, where they can be easily queried.
 
 Currently, these functions run every `3 hours`.
 
-## Scheduled Player Data Function
+### Scheduled Player Data Function
 
 This function runs 10 minutes after on-chain data is queried, in order to parse through all the data acquired and organize it by player (wallet).
 
