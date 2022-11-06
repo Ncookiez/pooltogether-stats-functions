@@ -4,7 +4,7 @@ import { getBlockTimestamp } from './queries';
 
 // Type Imports:
 import type { Chain, Address } from 'weaverfi/dist/types';
-import type { File, TX, Deposit, Withdrawal, Claim, Balance, YieldCapture, DelegationCreated, DelegationFunded, DelegationWithdrawn, WalletData, ChainStats, DepositsOverTime, WithdrawalsOverTime, ClaimsOverTime, TVLOverTime, DelegationsOverTime, YieldOverTime, WinlessWithdrawals, TVLDistribution } from './types';
+import type { File, TX, Deposit, Withdrawal, Claim, Balance, YieldCapture, DelegationCreated, DelegationFunded, DelegationWithdrawn, WalletData, ChainStats, DepositsOverTime, WithdrawalsOverTime, ClaimsOverTime, TVLOverTime, DelegationsOverTime, YieldOverTime, TVLDistribution } from './types';
 
 // Stats Settings:
 const minTimestamp = 1634270000;
@@ -24,11 +24,10 @@ export const getStats = async (chain: Chain, deposits: File | undefined, withdra
     const tvlOverTime = getTVLOverTime(depositsOverTime, withdrawalsOverTime, claimsOverTime);
     const delegationsOverTime = getDelegationsOverTime(delegationsCreated.data, delegationsFunded.data, delegationsWithdrawn.data, timestamps);
     const yieldOverTime = getYieldOverTime(yields.data, timestamps);
-    const winlessWithdrawals = getWinlessWithdrawals(wallets.data);
     const tvlDistribution = getTVLDistribution(balances.data);
     const currentUsers = (balances.data as Balance[]).filter(entry => entry.balance > 0).map(entry => entry.wallet);
     const topWhales = (balances.data as Balance[]).slice(0, 10);
-    const stats: ChainStats = { minTimestamp, maxTimestamp, depositsOverTime, withdrawalsOverTime, claimsOverTime, tvlOverTime, delegationsOverTime, yieldOverTime, winlessWithdrawals, tvlDistribution, currentUsers, topWhales };
+    const stats: ChainStats = { minTimestamp, maxTimestamp, depositsOverTime, withdrawalsOverTime, claimsOverTime, tvlOverTime, delegationsOverTime, yieldOverTime, tvlDistribution, currentUsers, topWhales };
     file.data.push(stats);
     console.info(`${chain.toUpperCase()}: Calculated all stats.`);
     return file;
@@ -422,47 +421,6 @@ const getYieldOverTime = (yields: YieldCapture[], timestamps: number[]) => {
   }
 
   return yieldOverTime;
-}
-
-// Function to get winless withdrawals:
-const getWinlessWithdrawals = (wallets: { wallet: Address, data: WalletData }[]) => {
-
-  // Initializations:
-  const winlessWithdrawals: WinlessWithdrawals[] = [];
-
-  // Filtering Wallets:
-  wallets.forEach(entry => {
-    if(entry.data.currentBalance === 0) {
-      const claimTXs = entry.data.txs.filter(tx => tx.type === 'claim');
-      if(claimTXs.length === 0) {
-        let virtualBalance = 0;
-        let maxVirtualBalance = 0;
-        let firstDepositTimestamp = 0;
-        let lastWithdrawalTimestamp = 0;
-        entry.data.txs.forEach(tx => {
-          if(tx.type === 'deposit') {
-            virtualBalance += tx.data.amount;
-            if(virtualBalance > maxVirtualBalance) {
-              maxVirtualBalance = virtualBalance;
-            }
-            if(firstDepositTimestamp === 0 && tx.data.timestamp) {
-              firstDepositTimestamp = tx.data.timestamp;
-            }
-          } else if(tx.type === 'withdrawal') {
-            virtualBalance -= tx.data.amount;
-            if(tx.data.timestamp) {
-              lastWithdrawalTimestamp = tx.data.timestamp;
-            }
-          }
-        });
-        if(virtualBalance <= 0 && firstDepositTimestamp > 0 && lastWithdrawalTimestamp > 0) {
-          winlessWithdrawals.push({ wallet: entry.wallet, maxBalance: maxVirtualBalance, firstDepositTimestamp, lastWithdrawalTimestamp });
-        }
-      }
-    }
-  });
-
-  return winlessWithdrawals;
 }
 
 // Function to get deposits over time:

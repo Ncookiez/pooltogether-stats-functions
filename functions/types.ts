@@ -195,7 +195,6 @@ export interface ChainStats {
   tvlOverTime: TVLOverTime
   delegationsOverTime: DelegationsOverTime
   yieldOverTime: YieldOverTime
-  winlessWithdrawals: WinlessWithdrawals[]
   tvlDistribution: TVLDistribution
   currentUsers: Address[]
   topWhales: Balance[]
@@ -298,12 +297,4 @@ export interface TVLDistribution {
   10000: { amount: number, count: number }
   100000: { amount: number, count: number }
   1000000: { amount: number, count: number }
-}
-
-// Winless Withdrawals Interface:
-export interface WinlessWithdrawals {
-  wallet: Address
-  maxBalance: number
-  firstDepositTimestamp: number
-  lastWithdrawalTimestamp: number
 }
