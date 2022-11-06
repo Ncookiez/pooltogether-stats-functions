@@ -21,6 +21,6 @@
     "firebase-admin": "^10.3.0",
     "firebase-functions": "^3.22.0",
     "swagger-ui-express": "^4.5.0",
-    "weaverfi": "1.33.4"
+    "weaverfi": "1.33.7"
   }
 }
