@@ -42,17 +42,18 @@ const noSorting: Files[] = ['balances', 'stats', 'lastDeposits', 'lastDelegation
 const noPagination: Files[] = ['stats', 'lastDeposits', 'lastDelegations'];
 
 // Query Settings:
-const querySchedule: string = '0 0,3,6,9,12,15,18,21 * * *';
+const querySchedule: string = '0 * * * *';
+const opQuerySchedule: string = '0,30 * * * *';
 const queryMemory: string = '2GB';
 const queryTimeoutInSeconds: number = 540;
 
 // Player Data Settings:
-const playerDataSchedule: string = '10 0,3,6,9,12,15,18,21 * * *';
+const playerDataSchedule: string = '10 * * * *';
 const playerDataMemory: string = '2GB';
 const playerDataTimeoutInSeconds: number = 540;
 const playerDataCollectionName: string = 'players';
 const defaultPlayerData: PlayerData = { txs: [], timestamps: [], depositsOverTime: [], claimsOverTime: [], withdrawalsOverTime: [], balancesOverTime: [], balances: { eth: 0, poly: 0, avax: 0, op: 0 } };
-const updateRedundancyInSeconds: number = 36000;
+const updateRedundancyInSeconds: number = 21_600;
 
 // API Settings:
 const apiMemory: string = '256MB';
@@ -154,7 +155,7 @@ exports.avaxDataQueries = functions.runWith({ memory: queryMemory, timeoutSecond
 });
 
 // Optimism Query Function:
-exports.opDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeoutInSeconds }).pubsub.schedule(querySchedule).onRun(async () => {
+exports.opDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeoutInSeconds }).pubsub.schedule(opQuerySchedule).onRun(async () => {
   const chain: Chain = 'op';
   const files = await fetchAllFiles(chain);
   const newFiles = await queryData(chain, files);
@@ -198,6 +199,7 @@ exports.playerDataFilter = functions.runWith({ memory: playerDataMemory, timeout
 
       // Finding Last Updated Timestamp:
       const lastUpdated = await getBlockTimestamp(chain, walletsFile.lastQueriedBlock);
+      // const lastUpdated = 1665687607;
       const minTimestamp = lastUpdated ? lastUpdated - updateRedundancyInSeconds : 0;
       console.info(`Filtering ${chain.toUpperCase()} data for wallets with transactions post-${minTimestamp.toLocaleString(undefined)}.`);
 

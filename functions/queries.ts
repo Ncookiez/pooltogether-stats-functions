@@ -1,10 +1,8 @@
 
-// Required Packages:
-const ethers = require('ethers');
-
 // Imports:
+import { ethers } from 'ethers';
 import { getStats } from './stats';
-import { query, queryBlocks, parseBN, multicallOneContractQuery } from 'weaverfi/dist/functions';
+import { query, parseBN, multicallOneContractQuery } from 'weaverfi/dist/functions';
 import { prizePoolABI, prizeDistributorABI, ticketABI, flushABI, aaveUSDCABI, twabDelegatorABI } from './ABIs';
 
 // Type Imports:
@@ -21,7 +19,8 @@ const numTXs = 1000;
 const chains: Partial<Record<Chain, ChainInfo>> = {
   eth: {
     provider: new ethers.providers.StaticJsonRpcProvider('https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161'),
-    rpcLimit: 100000,
+    rpcLimit: 100_000,
+    maxBlocksPerRuntime: 100_000,
     prizePool: '0xd89a09084555a7D0ABe7B111b1f78DFEdDd638Be',
     prizeDistributor: '0xb9a179DcA5a7bf5f8B9E088437B3A85ebB495eFe',
     delegator: '0x5cFbEE38362B9A60be276763753f64245EA990F7',
@@ -33,7 +32,8 @@ const chains: Partial<Record<Chain, ChainInfo>> = {
   },
   poly: {
     provider: new ethers.providers.StaticJsonRpcProvider('https://polygon-rpc.com'),
-    rpcLimit: 2048,
+    rpcLimit: 2_048,
+    maxBlocksPerRuntime: 50_000,
     prizePool: '0x19DE635fb3678D8B8154E37d8C9Cdf182Fe84E60',
     prizeDistributor: '0x8141BcFBcEE654c5dE17C4e2B2AF26B67f9B9056',
     delegator: '0x89Ee77Ce3F4C1b0346FF96E3004ff7C9f972dEF8',
@@ -45,7 +45,8 @@ const chains: Partial<Record<Chain, ChainInfo>> = {
   },
   avax: {
     provider: new ethers.providers.StaticJsonRpcProvider('https://avax-mainnet.gateway.pokt.network/v1/lb/605238bf6b986eea7cf36d5e/ext/bc/C/rpc'),
-    rpcLimit: 100000,
+    rpcLimit: 100_000,
+    maxBlocksPerRuntime: 100_000,
     prizePool: '0xF830F5Cb2422d555EC34178E27094a816c8F95EC',
     prizeDistributor: '0x83332F908f403ce795D90f677cE3f382FE73f3D1',
     delegator: '0xd23723fef8A16B77eaDc1fC822aE4170bA9d4009',
@@ -56,8 +57,9 @@ const chains: Partial<Record<Chain, ChainInfo>> = {
     timestamps: []
   },
   op: {
-    provider: new ethers.providers.StaticJsonRpcProvider('https://mainnet.optimism.io'),
-    rpcLimit: 100000,
+    provider: new ethers.providers.StaticJsonRpcProvider('https://rpc.ankr.com/optimism'),
+    rpcLimit: 3_000,
+    maxBlocksPerRuntime: 15_000,
     prizePool: '0x79Bc8bD53244bC8a9C8c27509a2d573650A83373',
     prizeDistributor: '0x722e9BFC008358aC2d445a8d892cF7b62B550F3F',
     delegator: '0x469C6F4c1AdA45EB2E251685aC2bf05aEd591E70',
@@ -73,17 +75,14 @@ const chains: Partial<Record<Chain, ChainInfo>> = {
 
 // Function to query all data from a specific chain:
 export const queryData = async (chain: Chain, files: Record<Files, File | undefined>) => {
-  const chainInfo = chains[chain];
-  if(chainInfo) {
-
-    // Getting Current Block:
-    const currentBlock = await chainInfo.provider.getBlockNumber();
+  let currentBlock = await getCurrentBlock(chain);
+  if(currentBlock) {
 
     // Querying Chain Data:
     files.deposits = await queryDeposits(chain, files.deposits, currentBlock);
     files.withdrawals = await queryWithdrawals(chain, files.withdrawals, currentBlock);
     files.claims = await queryClaims(chain, files.claims, currentBlock);
-    files.balances = await queryBalances(chain, currentBlock, files.deposits, files.withdrawals, files.claims);
+    files.balances = await queryBalances(chain, files.deposits, files.withdrawals, files.claims);
     files.yield = await queryYield(chain, files.yield, currentBlock);
     files.supply = await querySupply(chain, files.supply, currentBlock);
     files.delegationsCreated = await queryDelegationsCreated(chain, files.delegationsCreated, currentBlock);
@@ -92,11 +91,12 @@ export const queryData = async (chain: Chain, files: Record<Files, File | undefi
     files.delegationsWithdrawn = await queryDelegationsWithdrawn(chain, files.delegationsWithdrawn, currentBlock);
 
     // Getting Extra Data:
-    const chainData: ChainData = [chain, files.deposits, files.withdrawals, files.claims, files.balances, files.delegationsCreated, files.delegationsFunded, files.delegationsUpdated, files.delegationsWithdrawn, currentBlock];
+    const chainData: ChainData = [chain, files.deposits, files.withdrawals, files.claims, files.balances, files.delegationsCreated, files.delegationsFunded, files.delegationsUpdated, files.delegationsWithdrawn];
     files.wallets = getWalletData(...chainData);
     files.stats = await getStats(...chainData, files.yield, files.wallets);
     files.lastDeposits = getLastDeposits(files.deposits);
     files.lastDelegations = getLastDelegations(files.delegationsFunded);
+
   }
   return files;
 }
@@ -104,10 +104,15 @@ export const queryData = async (chain: Chain, files: Record<Files, File | undefi
 /* ========================================================================================================================================================================= */
 
 // Function to query deposits:
-const queryDeposits = async (chain: Chain, file: File | undefined, currentBlock: number) => {
+const queryDeposits = async (chain: Chain, file: File | undefined, endBlock: number) => {
   const chainInfo = chains[chain];
   if(file && chainInfo) {
-    const depositEvents = await queryBlocks(chain, chainInfo.prizePool, prizePoolABI, 'Deposited', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
+    const maxBlockForThisRuntime = file.lastQueriedBlock + chainInfo.maxBlocksPerRuntime;
+    if(endBlock > maxBlockForThisRuntime) {
+      endBlock = maxBlockForThisRuntime;
+    }
+    console.log(`${chain.toUpperCase()}: Querying deposits until block ${endBlock}...`);
+    const depositEvents = await queryBlocks(chain, chainInfo.prizePool, prizePoolABI, 'Deposited', chainInfo.rpcLimit, [], { startBlock: file.lastQueriedBlock, endBlock });
     if(depositEvents.length > 0) {
       console.info(`${chain.toUpperCase()}: Found ${depositEvents.length.toLocaleString(undefined)} new deposit events.`);
       for(let event of depositEvents) {
@@ -123,16 +128,21 @@ const queryDeposits = async (chain: Chain, file: File | undefined, currentBlock:
         }
       }
     }
-    file.lastQueriedBlock = currentBlock;
+    file.lastQueriedBlock = endBlock;
   }
   return file;
 }
 
 // Function to query withdrawals:
-const queryWithdrawals = async (chain: Chain, file: File | undefined, currentBlock: number) => {
+const queryWithdrawals = async (chain: Chain, file: File | undefined, endBlock: number) => {
   const chainInfo = chains[chain];
   if(file && chainInfo) {
-    const withdrawalEvents = await queryBlocks(chain, chainInfo.prizePool, prizePoolABI, 'Withdrawal', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
+    const maxBlockForThisRuntime = file.lastQueriedBlock + chainInfo.maxBlocksPerRuntime;
+    if(endBlock > maxBlockForThisRuntime) {
+      endBlock = maxBlockForThisRuntime;
+    }
+    console.log(`${chain.toUpperCase()}: Querying withdrawals until block ${endBlock}...`);
+    const withdrawalEvents = await queryBlocks(chain, chainInfo.prizePool, prizePoolABI, 'Withdrawal', chainInfo.rpcLimit, [], { startBlock: file.lastQueriedBlock, endBlock });
     if(withdrawalEvents.length > 0) {
       console.info(`${chain.toUpperCase()}: Found ${withdrawalEvents.length.toLocaleString(undefined)} new withdrawal events.`);
       for(let event of withdrawalEvents) {
@@ -148,16 +158,21 @@ const queryWithdrawals = async (chain: Chain, file: File | undefined, currentBlo
         }
       }
     }
-    file.lastQueriedBlock = currentBlock;
+    file.lastQueriedBlock = endBlock;
   }
   return file;
 }
 
 // Function to query claims:
-const queryClaims = async (chain: Chain, file: File | undefined, currentBlock: number) => {
+const queryClaims = async (chain: Chain, file: File | undefined, endBlock: number) => {
   const chainInfo = chains[chain];
   if(file && chainInfo) {
-    const claimEvents = await queryBlocks(chain, chainInfo.prizeDistributor, prizeDistributorABI, 'ClaimedDraw', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
+    const maxBlockForThisRuntime = file.lastQueriedBlock + chainInfo.maxBlocksPerRuntime;
+    if(endBlock > maxBlockForThisRuntime) {
+      endBlock = maxBlockForThisRuntime;
+    }
+    console.log(`${chain.toUpperCase()}: Querying claims until block ${endBlock}...`);
+    const claimEvents = await queryBlocks(chain, chainInfo.prizeDistributor, prizeDistributorABI, 'ClaimedDraw', chainInfo.rpcLimit, [], { startBlock: file.lastQueriedBlock, endBlock });
     if(claimEvents.length > 0) {
       console.info(`${chain.toUpperCase()}: Found ${claimEvents.length.toLocaleString(undefined)} new claim events.`);
       for(let event of claimEvents) {
@@ -179,13 +194,13 @@ const queryClaims = async (chain: Chain, file: File | undefined, currentBlock: n
         }
       }
     }
-    file.lastQueriedBlock = currentBlock;
+    file.lastQueriedBlock = endBlock;
   }
   return file;
 }
 
 // Function to query wallet balances:
-const queryBalances = async (chain: Chain, currentBlock: number, deposits: File | undefined, withdrawals: File | undefined, claims: File | undefined) => {
+const queryBalances = async (chain: Chain, deposits: File | undefined, withdrawals: File | undefined, claims: File | undefined) => {
   const chainInfo = chains[chain];
   let balances: File | undefined = undefined;
   if(chainInfo && deposits && withdrawals && claims) {
@@ -224,8 +239,8 @@ const queryBalances = async (chain: Chain, currentBlock: number, deposits: File 
     }
     console.info(`${chain.toUpperCase()}: Queried ${wallets.length.toLocaleString(undefined)} wallet balances.`);
     balances = {
-      lastQueriedBlock: currentBlock,
-      timestamp: await getBlockTimestamp(chain, currentBlock),
+      lastQueriedBlock: deposits.lastQueriedBlock,
+      timestamp: await getBlockTimestamp(chain, deposits.lastQueriedBlock),
       data: newBalanceData.sort((a, b) => b.balance - a.balance)
     }
   }
@@ -233,10 +248,15 @@ const queryBalances = async (chain: Chain, currentBlock: number, deposits: File 
 }
 
 // Function to query yield:
-const queryYield = async (chain: Chain, file: File | undefined, currentBlock: number) => {
+const queryYield = async (chain: Chain, file: File | undefined, endBlock: number) => {
   const chainInfo = chains[chain];
   if(file && chainInfo) {
-    const flushEvents = await queryBlocks(chain, chainInfo.flush, flushABI, 'Flushed', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
+    const maxBlockForThisRuntime = file.lastQueriedBlock + chainInfo.maxBlocksPerRuntime;
+    if(endBlock > maxBlockForThisRuntime) {
+      endBlock = maxBlockForThisRuntime;
+    }
+    console.log(`${chain.toUpperCase()}: Querying yield until block ${endBlock}...`);
+    const flushEvents = await queryBlocks(chain, chainInfo.flush, flushABI, 'Flushed', chainInfo.rpcLimit, [], { startBlock: file.lastQueriedBlock, endBlock });
     if(flushEvents.length > 0) {
       console.info(`${chain.toUpperCase()}: Found ${flushEvents.length.toLocaleString(undefined)} new flush events.`);
       for(let event of flushEvents) {
@@ -251,33 +271,42 @@ const queryYield = async (chain: Chain, file: File | undefined, currentBlock: nu
         }
       }
     }
-    file.lastQueriedBlock = currentBlock;
+    file.lastQueriedBlock = endBlock;
   }
   return file;
 }
 
 // Function to query supply:
-const querySupply = async (chain: Chain, file: File | undefined, currentBlock: number) => {
+const querySupply = async (chain: Chain, file: File | undefined, block: number) => {
   const chainInfo = chains[chain];
   if(file && chainInfo) {
+    const maxBlockForThisRuntime = file.lastQueriedBlock + chainInfo.maxBlocksPerRuntime;
+    if(block > maxBlockForThisRuntime) {
+      block = maxBlockForThisRuntime;
+    }
     const supply: Supply = {
-      block: currentBlock,
-      timestamp: await getBlockTimestamp(chain, currentBlock),
-      aave: parseInt(await query(chain, chainInfo.aaveUSDC, aaveUSDCABI, 'balanceOf', [chainInfo.yieldSource], currentBlock)) / (10 ** 6),
-      tickets: parseInt(await query(chain, chainInfo.ticket, ticketABI, 'totalSupply', [], currentBlock)) / (10 ** 6)
+      block: block,
+      timestamp: await getBlockTimestamp(chain, block),
+      aave: parseInt(await query(chain, chainInfo.aaveUSDC, aaveUSDCABI, 'balanceOf', [chainInfo.yieldSource], block)) / (10 ** 6),
+      tickets: parseInt(await query(chain, chainInfo.ticket, ticketABI, 'totalSupply', [], block)) / (10 ** 6)
     }
     console.info(`${chain.toUpperCase()}: Queried token supplies.`);
     file.data.push(supply);
-    file.lastQueriedBlock = currentBlock;
+    file.lastQueriedBlock = block;
   }
   return file;
 }
 
 // Function to query delegations created:
-const queryDelegationsCreated = async (chain: Chain, file: File | undefined, currentBlock: number) => {
+const queryDelegationsCreated = async (chain: Chain, file: File | undefined, endBlock: number) => {
   const chainInfo = chains[chain];
   if(file && chainInfo) {
-    const delegationCreationEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'DelegationCreated', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
+    const maxBlockForThisRuntime = file.lastQueriedBlock + chainInfo.maxBlocksPerRuntime;
+    if(endBlock > maxBlockForThisRuntime) {
+      endBlock = maxBlockForThisRuntime;
+    }
+    console.log(`${chain.toUpperCase()}: Querying delegations created until block ${endBlock}...`);
+    const delegationCreationEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'DelegationCreated', chainInfo.rpcLimit, [], { startBlock: file.lastQueriedBlock, endBlock });
     if(delegationCreationEvents.length > 0) {
       console.info(`${chain.toUpperCase()}: Found ${delegationCreationEvents.length.toLocaleString(undefined)} new delegation creation events.`);
       for(let event of delegationCreationEvents) {
@@ -293,16 +322,21 @@ const queryDelegationsCreated = async (chain: Chain, file: File | undefined, cur
         }
       }
     }
-    file.lastQueriedBlock = currentBlock;
+    file.lastQueriedBlock = endBlock;
   }
   return file;
 }
 
 // Function to query delegations funded:
-const queryDelegationsFunded = async (chain: Chain, file: File | undefined, currentBlock: number) => {
+const queryDelegationsFunded = async (chain: Chain, file: File | undefined, endBlock: number) => {
   const chainInfo = chains[chain];
   if(file && chainInfo) {
-    const delegationFundingEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'DelegationFunded', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
+    const maxBlockForThisRuntime = file.lastQueriedBlock + chainInfo.maxBlocksPerRuntime;
+    if(endBlock > maxBlockForThisRuntime) {
+      endBlock = maxBlockForThisRuntime;
+    }
+    console.log(`${chain.toUpperCase()}: Querying delegations funded until block ${endBlock}...`);
+    const delegationFundingEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'DelegationFunded', chainInfo.rpcLimit, [], { startBlock: file.lastQueriedBlock, endBlock });
     if(delegationFundingEvents.length > 0) {
       console.info(`${chain.toUpperCase()}: Found ${delegationFundingEvents.length.toLocaleString(undefined)} new delegation funding events.`);
       for(let event of delegationFundingEvents) {
@@ -318,16 +352,21 @@ const queryDelegationsFunded = async (chain: Chain, file: File | undefined, curr
         }
       }
     }
-    file.lastQueriedBlock = currentBlock;
+    file.lastQueriedBlock = endBlock;
   }
   return file;
 }
 
 // Function to query delegations updated:
-const queryDelegationsUpdated = async (chain: Chain, file: File | undefined, currentBlock: number) => {
+const queryDelegationsUpdated = async (chain: Chain, file: File | undefined, endBlock: number) => {
   const chainInfo = chains[chain];
   if(file && chainInfo) {
-    const delegationUpdateEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'DelegateeUpdated', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
+    const maxBlockForThisRuntime = file.lastQueriedBlock + chainInfo.maxBlocksPerRuntime;
+    if(endBlock > maxBlockForThisRuntime) {
+      endBlock = maxBlockForThisRuntime;
+    }
+    console.log(`${chain.toUpperCase()}: Querying delegations updated until block ${endBlock}...`);
+    const delegationUpdateEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'DelegateeUpdated', chainInfo.rpcLimit, [], { startBlock: file.lastQueriedBlock, endBlock });
     if(delegationUpdateEvents.length > 0) {
       console.info(`${chain.toUpperCase()}: Found ${delegationUpdateEvents.length.toLocaleString(undefined)} new delegation update events.`);
       for(let event of delegationUpdateEvents) {
@@ -343,16 +382,21 @@ const queryDelegationsUpdated = async (chain: Chain, file: File | undefined, cur
         }
       }
     }
-    file.lastQueriedBlock = currentBlock;
+    file.lastQueriedBlock = endBlock;
   }
   return file;
 }
 
 // Function to query delegations withdrawn:
-const queryDelegationsWithdrawn = async (chain: Chain, file: File | undefined, currentBlock: number) => {
+const queryDelegationsWithdrawn = async (chain: Chain, file: File | undefined, endBlock: number) => {
   const chainInfo = chains[chain];
   if(file && chainInfo) {
-    const delegationWithdrawalEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'TransferredDelegation', chainInfo.rpcLimit, [], file.lastQueriedBlock, currentBlock);
+    const maxBlockForThisRuntime = file.lastQueriedBlock + chainInfo.maxBlocksPerRuntime;
+    if(endBlock > maxBlockForThisRuntime) {
+      endBlock = maxBlockForThisRuntime;
+    }
+    console.log(`${chain.toUpperCase()}: Querying delegations withdrawn until block ${endBlock}...`);
+    const delegationWithdrawalEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'TransferredDelegation', chainInfo.rpcLimit, [], { startBlock: file.lastQueriedBlock, endBlock });
     if(delegationWithdrawalEvents.length > 0) {
       console.info(`${chain.toUpperCase()}: Found ${delegationWithdrawalEvents.length.toLocaleString(undefined)} new delegation withdrawal events.`);
       for(let event of delegationWithdrawalEvents) {
@@ -368,7 +412,7 @@ const queryDelegationsWithdrawn = async (chain: Chain, file: File | undefined, c
         }
       }
     }
-    file.lastQueriedBlock = currentBlock;
+    file.lastQueriedBlock = endBlock;
   }
   return file;
 }
@@ -376,9 +420,9 @@ const queryDelegationsWithdrawn = async (chain: Chain, file: File | undefined, c
 /* ========================================================================================================================================================================= */
 
 // Function to get aggregated wallet data:
-const getWalletData = (chain: Chain, deposits: File | undefined, withdrawals: File | undefined, claims: File | undefined, balances: File | undefined, delegationsCreated: File | undefined, delegationsFunded: File | undefined, delegationsUpdated: File | undefined, delegationsWithdrawn: File | undefined, currentBlock: number) => {
+const getWalletData = (chain: Chain, deposits: File | undefined, withdrawals: File | undefined, claims: File | undefined, balances: File | undefined, delegationsCreated: File | undefined, delegationsFunded: File | undefined, delegationsUpdated: File | undefined, delegationsWithdrawn: File | undefined) => {
   if(deposits && withdrawals && claims && balances && delegationsCreated && delegationsFunded && delegationsUpdated && delegationsWithdrawn) {
-    const file: File = { lastQueriedBlock: currentBlock, data: [] };
+    const file: File = { lastQueriedBlock: deposits.lastQueriedBlock, data: [] };
     const wallets: Record<Address, WalletData> = {};
     (balances.data as Balance[]).forEach(entry => {
       wallets[entry.wallet] = { txs: [], currentBalance: entry.balance };
@@ -443,6 +487,51 @@ const getLastDelegations = (delegationsFunded: File | undefined) => {
     const lastDelegationsData = delegationsFunded.data.slice().reverse().slice(0, numTXs);
     const lastDelegations: File = { lastQueriedBlock: delegationsFunded.lastQueriedBlock, data: lastDelegationsData };
     return lastDelegations;
+  }
+}
+
+/* ========================================================================================================================================================================= */
+
+// Function to query blocks (slightly edited from the WeaverFi SDK's implementation):
+const queryBlocks = async (chain: Chain, address: Address, abi: any, event: string, querySize: number, args: any[], options: { startBlock: number, endBlock: number, logs?: boolean }) => {
+  const results: ethers.Event[] = [];
+  const chainInfo = chains[chain];
+  if(chainInfo && options.endBlock > options.startBlock) {
+    let lastQueriedBlock = options.startBlock;
+    while(++lastQueriedBlock < options.endBlock) {
+      let targetBlock = Math.min(lastQueriedBlock + querySize, options.endBlock);
+      let result: ethers.Event[] | undefined = undefined;
+      let errors = 0;
+      options.logs && console.info(`Querying ${event} events on blocks ${lastQueriedBlock} to ${targetBlock}...`);
+      while(result === undefined) {
+        try {
+          let contract = new ethers.Contract(address, abi, chainInfo.provider);
+          let eventFilter = contract.filters[event](...args);
+          result = await contract.queryFilter(eventFilter, lastQueriedBlock, targetBlock);
+          options.logs && result.length > 0 && console.info(`Found ${result.length} ${event} events.`);
+        } catch(err) {
+          if(++errors >= 3) {
+            options.logs && console.error(err);
+            throw new Error(`Querying blocks ${lastQueriedBlock} to ${targetBlock} for events on ${address}`);
+          }
+          options.logs && console.info(`Retrying query...`);
+        }
+      }
+      results.push(...result);
+      lastQueriedBlock = targetBlock;
+    }
+  }
+  return results;
+}
+
+/* ========================================================================================================================================================================= */
+
+// Helper function to get current block:
+const getCurrentBlock = async (chain: Chain) => {
+  const chainInfo = chains[chain];
+  if(chainInfo) {
+    const block = await chainInfo.provider.getBlockNumber();
+    return block;
   }
 }
 

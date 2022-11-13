@@ -12,7 +12,7 @@ export type Files = 'deposits' | 'withdrawals' | 'claims' | 'balances' | 'yield'
 export type TX = DepositTX | WithdrawalTX | ClaimTX | DelegationCreatedTX | DelegationFundedTX | DelegationUpdatedTX | DelegationWithdrawnTX;
 
 // Chain Data Type:
-export type ChainData = [Chain, File | undefined, File | undefined, File | undefined, File | undefined, File | undefined, File | undefined, File | undefined, File | undefined, number];
+export type ChainData = [Chain, File | undefined, File | undefined, File | undefined, File | undefined, File | undefined, File | undefined, File | undefined, File | undefined];
 
 /* ========================================================================================================================================================================= */
 
@@ -36,6 +36,7 @@ export interface PaginatedFile {
 export interface ChainInfo {
   provider: ethers.providers.StaticJsonRpcProvider
   rpcLimit: number
+  maxBlocksPerRuntime: number
   prizePool: Address
   prizeDistributor: Address
   delegator: Address

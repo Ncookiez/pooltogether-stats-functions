@@ -4,19 +4,19 @@ import { getBlockTimestamp } from './queries';
 
 // Type Imports:
 import type { Chain, Address } from 'weaverfi/dist/types';
-import type { File, TX, Deposit, Withdrawal, Claim, Balance, YieldCapture, DelegationCreated, DelegationFunded, DelegationWithdrawn, WalletData, ChainStats, DepositsOverTime, WithdrawalsOverTime, ClaimsOverTime, TVLOverTime, DelegationsOverTime, YieldOverTime, TVLDistribution } from './types';
+import type { File, TX, Deposit, Withdrawal, Claim, Balance, YieldCapture, DelegationCreated, DelegationFunded, DelegationWithdrawn, ChainStats, DepositsOverTime, WithdrawalsOverTime, ClaimsOverTime, TVLOverTime, DelegationsOverTime, YieldOverTime, TVLDistribution } from './types';
 
 // Stats Settings:
-const minTimestamp = 1634270000;
+const minTimestamp = 1_634_270_000;
 const ticks = 50;
 
 /* ========================================================================================================================================================================= */
 
 // Function to get aggregated chain stats:
-export const getStats = async (chain: Chain, deposits: File | undefined, withdrawals: File | undefined, claims: File | undefined, balances: File | undefined, delegationsCreated: File | undefined, delegationsFunded: File | undefined, delegationsUpdated: File | undefined, delegationsWithdrawn: File | undefined, currentBlock: number, yields: File | undefined, wallets: File | undefined) => {
+export const getStats = async (chain: Chain, deposits: File | undefined, withdrawals: File | undefined, claims: File | undefined, balances: File | undefined, delegationsCreated: File | undefined, delegationsFunded: File | undefined, delegationsUpdated: File | undefined, delegationsWithdrawn: File | undefined, yields: File | undefined, wallets: File | undefined) => {
   if(deposits && withdrawals && claims && balances && delegationsCreated && delegationsFunded && delegationsUpdated && delegationsWithdrawn && yields && wallets) {
-    const file: File = { lastQueriedBlock: currentBlock, data: [] };
-    const maxTimestamp = (await getBlockTimestamp(chain, currentBlock)) as number;
+    const file: File = { lastQueriedBlock: deposits.lastQueriedBlock, data: [] };
+    const maxTimestamp = (await getBlockTimestamp(chain, deposits.lastQueriedBlock)) as number;
     const timestamps = getRangeArray(minTimestamp, maxTimestamp);
     const depositsOverTime = getDepositsOverTime(deposits.data, timestamps);
     const withdrawalsOverTime = getWithdrawalsOverTime(withdrawals.data, timestamps);
