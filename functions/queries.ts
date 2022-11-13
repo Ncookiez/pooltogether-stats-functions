@@ -111,7 +111,7 @@ const queryDeposits = async (chain: Chain, file: File | undefined, endBlock: num
     if(endBlock > maxBlockForThisRuntime) {
       endBlock = maxBlockForThisRuntime;
     }
-    console.log(`${chain.toUpperCase()}: Querying deposits until block ${endBlock}...`);
+    console.log(`${chain.toUpperCase()}: Querying deposits until block ${endBlock.toLocaleString()}...`);
     const depositEvents = await queryBlocks(chain, chainInfo.prizePool, prizePoolABI, 'Deposited', chainInfo.rpcLimit, [], { startBlock: file.lastQueriedBlock, endBlock });
     if(depositEvents.length > 0) {
       console.info(`${chain.toUpperCase()}: Found ${depositEvents.length.toLocaleString(undefined)} new deposit events.`);
@@ -141,7 +141,7 @@ const queryWithdrawals = async (chain: Chain, file: File | undefined, endBlock: 
     if(endBlock > maxBlockForThisRuntime) {
       endBlock = maxBlockForThisRuntime;
     }
-    console.log(`${chain.toUpperCase()}: Querying withdrawals until block ${endBlock}...`);
+    console.log(`${chain.toUpperCase()}: Querying withdrawals until block ${endBlock.toLocaleString()}...`);
     const withdrawalEvents = await queryBlocks(chain, chainInfo.prizePool, prizePoolABI, 'Withdrawal', chainInfo.rpcLimit, [], { startBlock: file.lastQueriedBlock, endBlock });
     if(withdrawalEvents.length > 0) {
       console.info(`${chain.toUpperCase()}: Found ${withdrawalEvents.length.toLocaleString(undefined)} new withdrawal events.`);
@@ -171,7 +171,7 @@ const queryClaims = async (chain: Chain, file: File | undefined, endBlock: numbe
     if(endBlock > maxBlockForThisRuntime) {
       endBlock = maxBlockForThisRuntime;
     }
-    console.log(`${chain.toUpperCase()}: Querying claims until block ${endBlock}...`);
+    console.log(`${chain.toUpperCase()}: Querying claims until block ${endBlock.toLocaleString()}...`);
     const claimEvents = await queryBlocks(chain, chainInfo.prizeDistributor, prizeDistributorABI, 'ClaimedDraw', chainInfo.rpcLimit, [], { startBlock: file.lastQueriedBlock, endBlock });
     if(claimEvents.length > 0) {
       console.info(`${chain.toUpperCase()}: Found ${claimEvents.length.toLocaleString(undefined)} new claim events.`);
@@ -255,7 +255,7 @@ const queryYield = async (chain: Chain, file: File | undefined, endBlock: number
     if(endBlock > maxBlockForThisRuntime) {
       endBlock = maxBlockForThisRuntime;
     }
-    console.log(`${chain.toUpperCase()}: Querying yield until block ${endBlock}...`);
+    console.log(`${chain.toUpperCase()}: Querying yield until block ${endBlock.toLocaleString()}...`);
     const flushEvents = await queryBlocks(chain, chainInfo.flush, flushABI, 'Flushed', chainInfo.rpcLimit, [], { startBlock: file.lastQueriedBlock, endBlock });
     if(flushEvents.length > 0) {
       console.info(`${chain.toUpperCase()}: Found ${flushEvents.length.toLocaleString(undefined)} new flush events.`);
@@ -305,7 +305,7 @@ const queryDelegationsCreated = async (chain: Chain, file: File | undefined, end
     if(endBlock > maxBlockForThisRuntime) {
       endBlock = maxBlockForThisRuntime;
     }
-    console.log(`${chain.toUpperCase()}: Querying delegations created until block ${endBlock}...`);
+    console.log(`${chain.toUpperCase()}: Querying delegations created until block ${endBlock.toLocaleString()}...`);
     const delegationCreationEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'DelegationCreated', chainInfo.rpcLimit, [], { startBlock: file.lastQueriedBlock, endBlock });
     if(delegationCreationEvents.length > 0) {
       console.info(`${chain.toUpperCase()}: Found ${delegationCreationEvents.length.toLocaleString(undefined)} new delegation creation events.`);
@@ -335,7 +335,7 @@ const queryDelegationsFunded = async (chain: Chain, file: File | undefined, endB
     if(endBlock > maxBlockForThisRuntime) {
       endBlock = maxBlockForThisRuntime;
     }
-    console.log(`${chain.toUpperCase()}: Querying delegations funded until block ${endBlock}...`);
+    console.log(`${chain.toUpperCase()}: Querying delegations funded until block ${endBlock.toLocaleString()}...`);
     const delegationFundingEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'DelegationFunded', chainInfo.rpcLimit, [], { startBlock: file.lastQueriedBlock, endBlock });
     if(delegationFundingEvents.length > 0) {
       console.info(`${chain.toUpperCase()}: Found ${delegationFundingEvents.length.toLocaleString(undefined)} new delegation funding events.`);
@@ -365,7 +365,7 @@ const queryDelegationsUpdated = async (chain: Chain, file: File | undefined, end
     if(endBlock > maxBlockForThisRuntime) {
       endBlock = maxBlockForThisRuntime;
     }
-    console.log(`${chain.toUpperCase()}: Querying delegations updated until block ${endBlock}...`);
+    console.log(`${chain.toUpperCase()}: Querying delegations updated until block ${endBlock.toLocaleString()}...`);
     const delegationUpdateEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'DelegateeUpdated', chainInfo.rpcLimit, [], { startBlock: file.lastQueriedBlock, endBlock });
     if(delegationUpdateEvents.length > 0) {
       console.info(`${chain.toUpperCase()}: Found ${delegationUpdateEvents.length.toLocaleString(undefined)} new delegation update events.`);
@@ -395,7 +395,7 @@ const queryDelegationsWithdrawn = async (chain: Chain, file: File | undefined, e
     if(endBlock > maxBlockForThisRuntime) {
       endBlock = maxBlockForThisRuntime;
     }
-    console.log(`${chain.toUpperCase()}: Querying delegations withdrawn until block ${endBlock}...`);
+    console.log(`${chain.toUpperCase()}: Querying delegations withdrawn until block ${endBlock.toLocaleString()}...`);
     const delegationWithdrawalEvents = await queryBlocks(chain, chainInfo.delegator, twabDelegatorABI, 'TransferredDelegation', chainInfo.rpcLimit, [], { startBlock: file.lastQueriedBlock, endBlock });
     if(delegationWithdrawalEvents.length > 0) {
       console.info(`${chain.toUpperCase()}: Found ${delegationWithdrawalEvents.length.toLocaleString(undefined)} new delegation withdrawal events.`);
