@@ -7,7 +7,7 @@ import { prizePoolABI, prizeDistributorABI, ticketABI, flushABI, aaveUSDCABI, tw
 
 // Type Imports:
 import type { Event } from 'ethers';
-import type { Chain, Address, CallContext } from 'weaverfi/dist/types';
+import type { Chain, Address, CallContext, ABI } from 'weaverfi/dist/types';
 import type { ChainInfo, ChainData, Files, File, Deposit, Withdrawal, Claim, Balance, YieldCapture, Supply, DelegationCreated, DelegationFunded, DelegationUpdated, DelegationWithdrawn, WalletData } from './types';
 
 // Last TXs Settings:
@@ -77,27 +77,27 @@ const chains: Partial<Record<Chain, ChainInfo>> = {
 export const queryData = async (chain: Chain, files: Record<Files, File | undefined>) => {
   let currentBlock = await getCurrentBlock(chain);
   if(currentBlock) {
-
-    // Querying Chain Data:
     files.deposits = await queryDeposits(chain, files.deposits, currentBlock);
     files.withdrawals = await queryWithdrawals(chain, files.withdrawals, currentBlock);
     files.claims = await queryClaims(chain, files.claims, currentBlock);
-    files.balances = await queryBalances(chain, files.deposits, files.withdrawals, files.claims);
     files.yield = await queryYield(chain, files.yield, currentBlock);
     files.supply = await querySupply(chain, files.supply, currentBlock);
     files.delegationsCreated = await queryDelegationsCreated(chain, files.delegationsCreated, currentBlock);
     files.delegationsFunded = await queryDelegationsFunded(chain, files.delegationsFunded, currentBlock);
     files.delegationsUpdated = await queryDelegationsUpdated(chain, files.delegationsUpdated, currentBlock);
     files.delegationsWithdrawn = await queryDelegationsWithdrawn(chain, files.delegationsWithdrawn, currentBlock);
-
-    // Getting Extra Data:
-    const chainData: ChainData = [chain, files.deposits, files.withdrawals, files.claims, files.balances, files.delegationsCreated, files.delegationsFunded, files.delegationsUpdated, files.delegationsWithdrawn];
-    files.wallets = getWalletData(...chainData);
-    files.stats = await getStats(...chainData, files.yield, files.wallets);
     files.lastDeposits = getLastDeposits(files.deposits);
     files.lastDelegations = getLastDelegations(files.delegationsFunded);
-
   }
+  return files;
+}
+
+// Function to query extra stats from a specific chain:
+export const queryStats = async (chain: Chain, files: Record<Files, File | undefined>) => {
+  files.balances = await queryBalances(chain, files.balances, files.deposits, files.withdrawals, files.claims);
+  const chainData: ChainData = [chain, files.deposits, files.withdrawals, files.claims, files.balances, files.delegationsCreated, files.delegationsFunded, files.delegationsUpdated, files.delegationsWithdrawn];
+  files.wallets = getWalletData(...chainData);
+  files.stats = await getStats(...chainData, files.yield, files.wallets);
   return files;
 }
 
@@ -200,33 +200,35 @@ const queryClaims = async (chain: Chain, file: File | undefined, endBlock: numbe
 }
 
 // Function to query wallet balances:
-const queryBalances = async (chain: Chain, deposits: File | undefined, withdrawals: File | undefined, claims: File | undefined) => {
+const queryBalances = async (chain: Chain, balances: File | undefined, deposits: File | undefined, withdrawals: File | undefined, claims: File | undefined) => {
   const chainInfo = chains[chain];
-  let balances: File | undefined = undefined;
   if(chainInfo && deposits && withdrawals && claims) {
     const wallets: Address[] = [];
     const newBalanceData: Balance[] = [];
     const balanceCalls: CallContext[] = [];
     const callsBatchSize = 500;
+    const customTimeAgoInSeconds: number | undefined = 3_196_800;
+    const lastTimestamp = await getBlockTimestamp(chain, deposits.lastQueriedBlock);
     let balanceCallsMade = 0;
     deposits.data.forEach((entry: Deposit) => {
-      if(!wallets.includes(entry.wallet)) {
+      if(!wallets.includes(entry.wallet) && isRecentEvent(entry, lastTimestamp, { timeAgoInSeconds: customTimeAgoInSeconds })) {
         wallets.push(entry.wallet);
       }
     });
     withdrawals.data.forEach((entry: Withdrawal) => {
-      if(!wallets.includes(entry.wallet)) {
+      if(!wallets.includes(entry.wallet) && isRecentEvent(entry, lastTimestamp, { timeAgoInSeconds: customTimeAgoInSeconds })) {
         wallets.push(entry.wallet);
       }
     });
     claims.data.forEach((entry: Claim) => {
-      if(!wallets.includes(entry.wallet)) {
+      if(!wallets.includes(entry.wallet) && isRecentEvent(entry, lastTimestamp, { timeAgoInSeconds: customTimeAgoInSeconds })) {
         wallets.push(entry.wallet);
       }
     });
     wallets.forEach(wallet => {
       balanceCalls.push({ reference: wallet, methodName: 'balanceOf', methodParameters: [wallet] });
     });
+    console.info(`${chain.toUpperCase()}: Querying ${wallets.length.toLocaleString(undefined)} wallet balances...`);
     while(balanceCallsMade < balanceCalls.length) {
       let lastCallIndex = Math.min(balanceCallsMade + callsBatchSize,  balanceCalls.length);
       let multicallResults = await multicallOneContractQuery(chain, chainInfo.ticket, ticketABI, balanceCalls.slice(balanceCallsMade, lastCallIndex));
@@ -237,11 +239,26 @@ const queryBalances = async (chain: Chain, deposits: File | undefined, withdrawa
         newBalanceData.push({ wallet, balance });
       }
     }
-    console.info(`${chain.toUpperCase()}: Queried ${wallets.length.toLocaleString(undefined)} wallet balances.`);
-    balances = {
-      lastQueriedBlock: deposits.lastQueriedBlock,
-      timestamp: await getBlockTimestamp(chain, deposits.lastQueriedBlock),
-      data: newBalanceData.sort((a, b) => b.balance - a.balance)
+    if(balances) {
+      balances.lastQueriedBlock = deposits.lastQueriedBlock;
+      balances.timestamp = lastTimestamp;
+      newBalanceData.forEach(entry => {
+        if(balances) {
+          const foundEntryIndex = balances.data.findIndex((oldEntry: Balance) => oldEntry.wallet === entry.wallet);
+          if(foundEntryIndex !== undefined && foundEntryIndex !== -1) {
+            balances.data[foundEntryIndex].balance = entry.balance;
+          } else {
+            balances.data.push({ wallet: entry.wallet, balance: entry.balance });
+          }
+        }
+      });
+      balances.data.sort((a, b) => b.balance - a.balance);
+    } else {
+      balances = {
+        lastQueriedBlock: deposits.lastQueriedBlock,
+        timestamp: lastTimestamp,
+        data: newBalanceData.sort((a, b) => b.balance - a.balance)
+      }
     }
   }
   return balances;
@@ -424,6 +441,7 @@ const getWalletData = (chain: Chain, deposits: File | undefined, withdrawals: Fi
   if(deposits && withdrawals && claims && balances && delegationsCreated && delegationsFunded && delegationsUpdated && delegationsWithdrawn) {
     const file: File = { lastQueriedBlock: deposits.lastQueriedBlock, data: [] };
     const wallets: Record<Address, WalletData> = {};
+    console.info(`${chain.toUpperCase()}: Filtering through wallet data...`);
     (balances.data as Balance[]).forEach(entry => {
       wallets[entry.wallet] = { txs: [], currentBalance: entry.balance };
     });
@@ -467,7 +485,6 @@ const getWalletData = (chain: Chain, deposits: File | undefined, withdrawals: Fi
       wallets[wallet].txs.sort((a, b) => (a.data.timestamp as number) - (b.data.timestamp as number));
       file.data.push({ wallet: wallet, data: wallets[wallet] });
     }
-    console.info(`${chain.toUpperCase()}: Filtered through data of ${file.data.length.toLocaleString(undefined)} wallets.`);
     return file;
   }
 }
@@ -493,7 +510,7 @@ const getLastDelegations = (delegationsFunded: File | undefined) => {
 /* ========================================================================================================================================================================= */
 
 // Function to query blocks (slightly edited from the WeaverFi SDK's implementation):
-const queryBlocks = async (chain: Chain, address: Address, abi: any, event: string, querySize: number, args: any[], options: { startBlock: number, endBlock: number, logs?: boolean }) => {
+const queryBlocks = async (chain: Chain, address: Address, abi: ABI, event: string, querySize: number, args: any[], options: { startBlock: number, endBlock: number, logs?: boolean }) => {
   const results: ethers.Event[] = [];
   const chainInfo = chains[chain];
   if(chainInfo && options.endBlock > options.startBlock) {
@@ -588,4 +605,12 @@ export const getBlockTimestamp = async (chain: Chain, block: number) => {
     }
   }
   return undefined;
+}
+
+// Helper function to determine if event has taken place in the last week or custom timespan:
+const isRecentEvent = (event: Deposit | Withdrawal | Claim, timestamp: number | undefined, options?: { timeAgoInSeconds?: number }) => {
+  if(event.timestamp && timestamp) {
+    const lookBackTimeInSeconds = options?.timeAgoInSeconds || 604_800;
+    return event.timestamp > (timestamp - lookBackTimeInSeconds);
+  }
 }

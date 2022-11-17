@@ -9,7 +9,7 @@ const functions = require('firebase-functions');
 // Imports:
 import { utils } from 'ethers';
 import { getPlayerDataOverTime } from './stats';
-import { queryData, getBlockTimestamp } from './queries';
+import { queryData, queryStats, getBlockTimestamp } from './queries';
 
 // Type Imports:
 import type { Chain, Address } from 'weaverfi/dist/types';
@@ -41,13 +41,18 @@ const fileNames: Files[] = ['deposits', 'withdrawals', 'claims', 'balances', 'yi
 const noSorting: Files[] = ['balances', 'stats', 'lastDeposits', 'lastDelegations'];
 const noPagination: Files[] = ['stats', 'lastDeposits', 'lastDelegations'];
 
-// Query Settings:
-const querySchedule: string = '0 * * * *';
-const queryMemory: string = '2GB';
-const queryTimeoutInSeconds: number = 540;
+// Data Query Settings:
+const dataQuerySchedule: string = '0 * * * *';
+const dataQueryMemory: string = '1GB';
+const dataQueryTimeoutInSeconds: number = 540;
+
+// Stats Query Settings:
+const statsQuerySchedule: string = '10 * * * *';
+const statsQueryMemory: string = '2GB';
+const statsQueryTimeoutInSeconds: number = 540;
 
 // Player Data Settings:
-const playerDataSchedule: string = '10 * * * *';
+const playerDataSchedule: string = '20 * * * *';
 const playerDataMemory: string = '2GB';
 const playerDataTimeoutInSeconds: number = 540;
 const playerDataCollectionName: string = 'players';
@@ -115,19 +120,22 @@ const fetchAllFiles = async (chain: Chain) => {
 }
 
 // Function to save all files of a specific chain to storage bucket:
-const saveAllFiles = async (chain: Chain, files: Record<Files, File | undefined>) => {
-  for(let fileName in files) {
-    let file = files[fileName as Files];
-    if(file) {
-      await saveFile(`${chain}/${fileName}.json`, file);
+const saveAllFiles = async (chain: Chain, files: Record<Files, File | undefined>, options?: { only?: Files[] }) => {
+  for(let stringFileName in files) {
+    const fileName = stringFileName as Files;
+    if(options?.only === undefined || options.only.includes(fileName)) {
+      let file = files[fileName];
+      if(file) {
+        await saveFile(`${chain}/${fileName}.json`, file);
+      }
     }
   }
 }
 
 /* ========================================================================================================================================================================= */
 
-// Ethereum Query Function:
-exports.ethDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeoutInSeconds }).pubsub.schedule(querySchedule).onRun(async () => {
+// Ethereum Data Query Function:
+exports.ethDataQueries = functions.runWith({ memory: dataQueryMemory, timeoutSeconds: dataQueryTimeoutInSeconds }).pubsub.schedule(dataQuerySchedule).onRun(async () => {
   const chain: Chain = 'eth';
   const files = await fetchAllFiles(chain);
   const newFiles = await queryData(chain, files);
@@ -135,8 +143,8 @@ exports.ethDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds
   return null;
 });
 
-// Polygon Query Function:
-exports.polyDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeoutInSeconds }).pubsub.schedule(querySchedule).onRun(async () => {
+// Polygon Data Query Function:
+exports.polyDataQueries = functions.runWith({ memory: dataQueryMemory, timeoutSeconds: dataQueryTimeoutInSeconds }).pubsub.schedule(dataQuerySchedule).onRun(async () => {
   const chain: Chain = 'poly';
   const files = await fetchAllFiles(chain);
   const newFiles = await queryData(chain, files);
@@ -144,8 +152,8 @@ exports.polyDataQueries = functions.runWith({ memory: queryMemory, timeoutSecond
   return null;
 });
 
-// Avalanche Query Function:
-exports.avaxDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeoutInSeconds }).pubsub.schedule(querySchedule).onRun(async () => {
+// Avalanche Data Query Function:
+exports.avaxDataQueries = functions.runWith({ memory: dataQueryMemory, timeoutSeconds: dataQueryTimeoutInSeconds }).pubsub.schedule(dataQuerySchedule).onRun(async () => {
   const chain: Chain = 'avax';
   const files = await fetchAllFiles(chain);
   const newFiles = await queryData(chain, files);
@@ -153,12 +161,50 @@ exports.avaxDataQueries = functions.runWith({ memory: queryMemory, timeoutSecond
   return null;
 });
 
-// Optimism Query Function:
-exports.opDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeoutInSeconds }).pubsub.schedule(querySchedule).onRun(async () => {
+// Optimism Data Query Function:
+exports.opDataQueries = functions.runWith({ memory: dataQueryMemory, timeoutSeconds: dataQueryTimeoutInSeconds }).pubsub.schedule(dataQuerySchedule).onRun(async () => {
   const chain: Chain = 'op';
   const files = await fetchAllFiles(chain);
   const newFiles = await queryData(chain, files);
   await saveAllFiles(chain, newFiles);
+  return null;
+});
+
+/* ========================================================================================================================================================================= */
+
+// Ethereum Stats Query Function:
+exports.ethStatsQueries = functions.runWith({ memory: statsQueryMemory, timeoutSeconds: statsQueryTimeoutInSeconds }).pubsub.schedule(statsQuerySchedule).onRun(async () => {
+  const chain: Chain = 'eth';
+  const files = await fetchAllFiles(chain);
+  const newFiles = await queryStats(chain, files);
+  await saveAllFiles(chain, newFiles, { only: ['balances', 'wallets', 'stats'] });
+  return null;
+});
+
+// Polygon Stats Query Function:
+exports.polyStatsQueries = functions.runWith({ memory: statsQueryMemory, timeoutSeconds: statsQueryTimeoutInSeconds }).pubsub.schedule(statsQuerySchedule).onRun(async () => {
+  const chain: Chain = 'poly';
+  const files = await fetchAllFiles(chain);
+  const newFiles = await queryStats(chain, files);
+  await saveAllFiles(chain, newFiles, { only: ['balances', 'wallets', 'stats'] });
+  return null;
+});
+
+// Avalanche Stats Query Function:
+exports.avaxStatsQueries = functions.runWith({ memory: statsQueryMemory, timeoutSeconds: statsQueryTimeoutInSeconds }).pubsub.schedule(statsQuerySchedule).onRun(async () => {
+  const chain: Chain = 'avax';
+  const files = await fetchAllFiles(chain);
+  const newFiles = await queryStats(chain, files);
+  await saveAllFiles(chain, newFiles, { only: ['balances', 'wallets', 'stats'] });
+  return null;
+});
+
+// Optimism Stats Query Function:
+exports.opStatsQueries = functions.runWith({ memory: statsQueryMemory, timeoutSeconds: statsQueryTimeoutInSeconds }).pubsub.schedule(statsQuerySchedule).onRun(async () => {
+  const chain: Chain = 'op';
+  const files = await fetchAllFiles(chain);
+  const newFiles = await queryStats(chain, files);
+  await saveAllFiles(chain, newFiles, { only: ['balances', 'wallets', 'stats'] });
   return null;
 });
 

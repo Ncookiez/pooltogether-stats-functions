@@ -9,6 +9,7 @@ import type { File, TX, Deposit, Withdrawal, Claim, Balance, YieldCapture, Deleg
 // Stats Settings:
 const minTimestamp = 1_634_270_000;
 const ticks = 50;
+const zeros: number[] = new Array(ticks).fill(0);
 
 /* ========================================================================================================================================================================= */
 
@@ -18,13 +19,21 @@ export const getStats = async (chain: Chain, deposits: File | undefined, withdra
     const file: File = { lastQueriedBlock: deposits.lastQueriedBlock, data: [] };
     const maxTimestamp = (await getBlockTimestamp(chain, deposits.lastQueriedBlock)) as number;
     const timestamps = getRangeArray(minTimestamp, maxTimestamp);
+    console.log(`${chain.toUpperCase()}: Calculating deposits over time...`);
     const depositsOverTime = getDepositsOverTime(deposits.data, timestamps);
+    console.log(`${chain.toUpperCase()}: Calculating withdrawals over time...`);
     const withdrawalsOverTime = getWithdrawalsOverTime(withdrawals.data, timestamps);
+    console.log(`${chain.toUpperCase()}: Calculating claims over time...`);
     const claimsOverTime = getClaimsOverTime(claims.data, timestamps);
+    console.log(`${chain.toUpperCase()}: Calculating TVL over time...`);
     const tvlOverTime = getTVLOverTime(depositsOverTime, withdrawalsOverTime, claimsOverTime);
+    console.log(`${chain.toUpperCase()}: Calculating delegations over time...`);
     const delegationsOverTime = getDelegationsOverTime(delegationsCreated.data, delegationsFunded.data, delegationsWithdrawn.data, timestamps);
+    console.log(`${chain.toUpperCase()}: Calculating yield over time...`);
     const yieldOverTime = getYieldOverTime(yields.data, timestamps);
+    console.log(`${chain.toUpperCase()}: Calculating TVL distribution...`);
     const tvlDistribution = getTVLDistribution(balances.data);
+    console.log(`${chain.toUpperCase()}: Filtering user balances...`);
     const currentUsers = (balances.data as Balance[]).filter(entry => entry.balance > 0).map(entry => entry.wallet);
     const topWhales = (balances.data as Balance[]).slice(0, 10);
     const stats: ChainStats = { minTimestamp, maxTimestamp, depositsOverTime, withdrawalsOverTime, claimsOverTime, tvlOverTime, delegationsOverTime, yieldOverTime, tvlDistribution, currentUsers, topWhales };
@@ -42,90 +51,78 @@ const getDepositsOverTime = (deposits: Deposit[], timestamps: number[]) => {
   // Initializations:
   const depositsOverTime: DepositsOverTime = {
     timestamps: timestamps,
-    depositAmounts: [],
-    depositCounts: [],
-    uniqueWallets: [],
-    distributions: { 1: [], 10: [], 100: [], 1000: [], 10000: [], 100000: [] },
-    avgDepositAmounts: [],
-    cumulativeDepositAmounts: [],
-    cumulativeDepositCounts: [],
-    cumulativeUniqueWallets: [],
-    cumulativeDistributions: { 1: [], 10: [], 100: [], 1000: [], 10000: [], 100000: [] }
+    depositAmounts: [...zeros],
+    depositCounts: [...zeros],
+    uniqueWallets: [...zeros],
+    distributions: { 1: [...zeros], 10: [...zeros], 100: [...zeros], 1000: [...zeros], 10000: [...zeros], 100000: [...zeros] },
+    avgDepositAmounts: [...zeros],
+    cumulativeDepositAmounts: [...zeros],
+    cumulativeDepositCounts: [...zeros],
+    cumulativeUniqueWallets: [...zeros],
+    cumulativeDistributions: { 1: [...zeros], 10: [...zeros], 100: [...zeros], 1000: [...zeros], 10000: [...zeros], 100000: [...zeros] }
   }
-  let cumulativeDepositAmount = 0;
-  let cumulativeDepositCount = 0;
-  let cumulativeUniqueWallets: Address[] = [];
-  let cumulativeDistributions = { 1: 0, 10: 0, 100: 0, 1000: 0, 10000: 0, 100000: 0 };
-  
+  const cumulativeUniqueWallets: Address[] = [];
+  const cumulativeDistributions = { 1: 0, 10: 0, 100: 0, 1000: 0, 10000: 0, 100000: 0 };
+  let cumulativeDepositAmount: number = 0;
+  let cumulativeDepositCount: number = 0;
+
   // Filtering Data:
-  for(let i = 0; i < ticks; i++) {
-    let depositAmount = 0;
-    let depositCount = 0;
-    let newWallets = 0;
-    let distributions = { 1: 0, 10: 0, 100: 0, 1000: 0, 10000: 0, 100000: 0 };
-    deposits.forEach(deposit => {
-      if(deposit.timestamp && deposit.timestamp <= depositsOverTime.timestamps[i]) {
-        if((i > 0 && deposit.timestamp > depositsOverTime.timestamps[i - 1]) || i === 0) {
-          depositAmount += deposit.amount;
-          depositCount++;
+  deposits.forEach(deposit => {
+    if(deposit.timestamp) {
+      for(let i = 0; i < ticks; i++) {
+        if(deposit.timestamp <= timestamps[i]) {
+          depositsOverTime.depositAmounts[i] += deposit.amount;
+          depositsOverTime.depositCounts[i]++;
+          cumulativeDepositAmount += deposit.amount;
+          cumulativeDepositCount++;
           if(!cumulativeUniqueWallets.includes(deposit.wallet)) {
             cumulativeUniqueWallets.push(deposit.wallet);
-            newWallets++;
+            depositsOverTime.uniqueWallets[i]++;
           }
           if(deposit.amount >= 1) {
             if(deposit.amount >= 10) {
               if(deposit.amount >= 100) {
-                if(deposit.amount >= 1000) {
-                  if(deposit.amount >= 10000) {
-                    if(deposit.amount >= 100000) {
-                      distributions[100000]++;
+                if(deposit.amount >= 1_000) {
+                  if(deposit.amount >= 10_000) {
+                    if(deposit.amount >= 100_000) {
+                      depositsOverTime.distributions[100_000][i]++;
+                      cumulativeDistributions[100_000]++;
                     } else {
-                      distributions[10000]++;
+                      depositsOverTime.distributions[10_000][i]++;
+                      cumulativeDistributions[10_000]++;
                     }
                   } else {
-                    distributions[1000]++;
+                    depositsOverTime.distributions[1_000][i]++;
+                    cumulativeDistributions[1_000]++;
                   }
                 } else {
-                  distributions[100]++;
+                  depositsOverTime.distributions[100][i]++;
+                  cumulativeDistributions[100]++;
                 }
               } else {
-                distributions[10]++;
+                depositsOverTime.distributions[10][i]++;
+                cumulativeDistributions[10]++;
               }
             } else {
-              distributions[1]++;
+              depositsOverTime.distributions[1][i]++;
+              cumulativeDistributions[1]++;
             }
           }
+          depositsOverTime.cumulativeDepositAmounts[i] = cumulativeDepositAmount;
+          depositsOverTime.cumulativeDepositCounts[i] = cumulativeDepositCount;
+          depositsOverTime.cumulativeDistributions[1][i] = cumulativeDistributions[1];
+          depositsOverTime.cumulativeDistributions[10][i] = cumulativeDistributions[10];
+          depositsOverTime.cumulativeDistributions[100][i] = cumulativeDistributions[100];
+          depositsOverTime.cumulativeDistributions[1_000][i] = cumulativeDistributions[1_000];
+          depositsOverTime.cumulativeDistributions[10_000][i] = cumulativeDistributions[10_000];
+          depositsOverTime.cumulativeDistributions[100_000][i] = cumulativeDistributions[100_000];
+          depositsOverTime.avgDepositAmounts[i] = depositsOverTime.depositAmounts[i] / depositsOverTime.depositCounts[i];
+          depositsOverTime.cumulativeUniqueWallets[i] = cumulativeUniqueWallets.length;
+          break;
         }
       }
-    });
-    cumulativeDepositAmount += depositAmount;
-    cumulativeDepositCount += depositCount;
-    cumulativeDistributions[1] += distributions[1];
-    cumulativeDistributions[10] += distributions[10];
-    cumulativeDistributions[100] += distributions[100];
-    cumulativeDistributions[1000] += distributions[1000];
-    cumulativeDistributions[10000] += distributions[10000];
-    cumulativeDistributions[100000] += distributions[100000];
-    depositsOverTime.depositAmounts.push(Math.floor(depositAmount));
-    depositsOverTime.depositCounts.push(depositCount);
-    depositsOverTime.uniqueWallets.push(newWallets);
-    depositsOverTime.distributions[1].push(distributions[1]);
-    depositsOverTime.distributions[10].push(distributions[10]);
-    depositsOverTime.distributions[100].push(distributions[100]);
-    depositsOverTime.distributions[1000].push(distributions[1000]);
-    depositsOverTime.distributions[10000].push(distributions[10000]);
-    depositsOverTime.distributions[100000].push(distributions[100000]);
-    depositsOverTime.avgDepositAmounts.push(depositCount > 0 ? Math.floor(depositAmount / depositCount) : 0);
-    depositsOverTime.cumulativeDepositAmounts.push(Math.floor(cumulativeDepositAmount));
-    depositsOverTime.cumulativeDepositCounts.push(cumulativeDepositCount);
-    depositsOverTime.cumulativeUniqueWallets.push(cumulativeUniqueWallets.length);
-    depositsOverTime.cumulativeDistributions[1].push(cumulativeDistributions[1]);
-    depositsOverTime.cumulativeDistributions[10].push(cumulativeDistributions[10]);
-    depositsOverTime.cumulativeDistributions[100].push(cumulativeDistributions[100]);
-    depositsOverTime.cumulativeDistributions[1000].push(cumulativeDistributions[1000]);
-    depositsOverTime.cumulativeDistributions[10000].push(cumulativeDistributions[10000]);
-    depositsOverTime.cumulativeDistributions[100000].push(cumulativeDistributions[100000]);
-  }
+    }
+  });
 
   return depositsOverTime;
 }
@@ -136,45 +133,40 @@ const getWithdrawalsOverTime = (withdrawals: Withdrawal[], timestamps: number[])
   // Initializations:
   const withdrawalsOverTime: WithdrawalsOverTime = {
     timestamps: timestamps,
-    withdrawalAmounts: [],
-    withdrawalCounts: [],
-    uniqueWallets: [],
-    avgWithdrawalAmounts: [],
-    cumulativeWithdrawalAmounts: [],
-    cumulativeWithdrawalCounts: [],
-    cumulativeUniqueWallets: []
+    withdrawalAmounts: [...zeros],
+    withdrawalCounts: [...zeros],
+    uniqueWallets: [...zeros],
+    avgWithdrawalAmounts: [...zeros],
+    cumulativeWithdrawalAmounts: [...zeros],
+    cumulativeWithdrawalCounts: [...zeros],
+    cumulativeUniqueWallets: [...zeros]
   }
-  let cumulativeWithdrawalAmount = 0;
-  let cumulativeWithdrawalCount = 0;
-  let cumulativeUniqueWallets: Address[] = [];
-  
+  const cumulativeUniqueWallets: Address[] = [];
+  let cumulativeWithdrawalAmount: number = 0;
+  let cumulativeWithdrawalCount: number = 0;
+
   // Filtering Data:
-  for(let i = 0; i < ticks; i++) {
-    let withdrawalAmount = 0;
-    let withdrawalCount = 0;
-    let newWallets = 0;
-    withdrawals.forEach(withdrawal => {
-      if(withdrawal.timestamp && withdrawal.timestamp <= withdrawalsOverTime.timestamps[i]) {
-        if((i > 0 && withdrawal.timestamp > withdrawalsOverTime.timestamps[i - 1]) || i === 0) {
-          withdrawalAmount += withdrawal.amount;
-          withdrawalCount++;
+  withdrawals.forEach(withdrawal => {
+    if(withdrawal.timestamp) {
+      for(let i = 0; i < ticks; i++) {
+        if(withdrawal.timestamp <= timestamps[i]) {
+          withdrawalsOverTime.withdrawalAmounts[i] += withdrawal.amount;
+          withdrawalsOverTime.withdrawalCounts[i]++;
+          cumulativeWithdrawalAmount += withdrawal.amount;
+          cumulativeWithdrawalCount++;
           if(!cumulativeUniqueWallets.includes(withdrawal.wallet)) {
             cumulativeUniqueWallets.push(withdrawal.wallet);
-            newWallets++;
+            withdrawalsOverTime.uniqueWallets[i]++;
           }
+          withdrawalsOverTime.cumulativeWithdrawalAmounts[i] = cumulativeWithdrawalAmount;
+          withdrawalsOverTime.cumulativeWithdrawalCounts[i] = cumulativeWithdrawalCount;
+          withdrawalsOverTime.avgWithdrawalAmounts[i] = withdrawalsOverTime.withdrawalAmounts[i] / withdrawalsOverTime.withdrawalCounts[i];
+          withdrawalsOverTime.cumulativeUniqueWallets[i] = cumulativeUniqueWallets.length;
+          break;
         }
       }
-    });
-    cumulativeWithdrawalAmount += withdrawalAmount;
-    cumulativeWithdrawalCount += withdrawalCount;
-    withdrawalsOverTime.withdrawalAmounts.push(Math.floor(withdrawalAmount));
-    withdrawalsOverTime.withdrawalCounts.push(withdrawalCount);
-    withdrawalsOverTime.uniqueWallets.push(newWallets);
-    withdrawalsOverTime.avgWithdrawalAmounts.push(withdrawalCount > 0 ? Math.floor(withdrawalAmount / withdrawalCount) : 0);
-    withdrawalsOverTime.cumulativeWithdrawalAmounts.push(Math.floor(cumulativeWithdrawalAmount));
-    withdrawalsOverTime.cumulativeWithdrawalCounts.push(cumulativeWithdrawalCount);
-    withdrawalsOverTime.cumulativeUniqueWallets.push(cumulativeUniqueWallets.length);
-  }
+    }
+  });
 
   return withdrawalsOverTime;
 }
@@ -197,29 +189,27 @@ const getClaimsOverTime = (claims: Claim[], timestamps: number[]) => {
     cumulativeUniqueWallets: [],
     cumulativeDistributions: { 1: [], 5: [], 10: [], 50: [], 100: [], 500: [], 1000: [] }
   }
-  let cumulativeClaimAmount = 0;
-  let cumulativeClaimCount = 0;
-  let cumulativePrizeCount = 0;
-  let cumulativeUniqueWallets: Address[] = [];
-  let cumulativeDistributions = { 1: 0, 5: 0, 10: 0, 50: 0, 100: 0, 500: 0, 1000: 0 };
-  
+  const cumulativeUniqueWallets: Address[] = [];
+  const cumulativeDistributions = { 1: 0, 5: 0, 10: 0, 50: 0, 100: 0, 500: 0, 1000: 0 };
+  let cumulativeClaimAmount: number = 0;
+  let cumulativeClaimCount: number = 0;
+  let cumulativePrizeCount: number = 0;
+
   // Filtering Data:
-  for(let i = 0; i < ticks; i++) {
-    let claimAmount = 0;
-    let claimCount = 0;
-    let prizeCount = 0;
-    let newWallets = 0;
-    let distributions = { 1: 0, 5: 0, 10: 0, 50: 0, 100: 0, 500: 0, 1000: 0 };
-    claims.forEach(claim => {
-      if(claim.timestamp && claim.timestamp <= claimsOverTime.timestamps[i]) {
-        if((i > 0 && claim.timestamp > claimsOverTime.timestamps[i - 1]) || i === 0) {
+  claims.forEach(claim => {
+    if(claim.timestamp) {
+      for(let i = 0; i < ticks; i++) {
+        if(claim.timestamp <= timestamps[i]) {
           const totalAmountClaimed = claim.prizes.reduce((a, b) => a + b, 0);
-          claimAmount += totalAmountClaimed;
-          claimCount++;
-          prizeCount += claim.prizes.length;
+          claimsOverTime.claimAmounts[i] += totalAmountClaimed;
+          claimsOverTime.claimCounts[i]++;
+          claimsOverTime.prizeCounts[i] += claim.prizes.length;
+          cumulativeClaimAmount += totalAmountClaimed;
+          cumulativeClaimCount++;
+          cumulativePrizeCount += claim.prizes.length;
           if(!cumulativeUniqueWallets.includes(claim.wallet)) {
             cumulativeUniqueWallets.push(claim.wallet);
-            newWallets++;
+            claimsOverTime.uniqueWallets[i]++;
           }
           if(totalAmountClaimed >= 1) {
             if(totalAmountClaimed >= 5) {
@@ -227,64 +217,50 @@ const getClaimsOverTime = (claims: Claim[], timestamps: number[]) => {
                 if(totalAmountClaimed >= 50) {
                   if(totalAmountClaimed >= 100) {
                     if(totalAmountClaimed >= 500) {
-                      if(totalAmountClaimed >= 1000) {
-                        distributions[1000]++;
+                      if(totalAmountClaimed >= 1_000) {
+                        claimsOverTime.distributions[1_000][i]++;
+                        cumulativeDistributions[1_000]++;
                       } else {
-                        distributions[500]++;
+                        claimsOverTime.distributions[500][i]++;
+                        cumulativeDistributions[500]++;
                       }
                     } else {
-                      distributions[100]++;
+                      claimsOverTime.distributions[100][i]++;
+                      cumulativeDistributions[100]++;
                     }
                   } else {
-                    distributions[50]++;
+                    claimsOverTime.distributions[50][i]++;
+                    cumulativeDistributions[50]++;
                   }
                 } else {
-                  distributions[10]++;
+                  claimsOverTime.distributions[10][i]++;
+                  cumulativeDistributions[10]++;
                 }
               } else {
-                distributions[5]++;
+                claimsOverTime.distributions[5][i]++;
+                cumulativeDistributions[5]++;
               }
             } else {
-              distributions[1]++;
+              claimsOverTime.distributions[1][i]++;
+              cumulativeDistributions[1]++;
             }
           }
+          claimsOverTime.cumulativeClaimAmounts[i] = cumulativeClaimAmount;
+          claimsOverTime.cumulativeClaimCounts[i] = cumulativeClaimCount;
+          claimsOverTime.cumulativePrizeCounts[i] = cumulativePrizeCount;
+          claimsOverTime.cumulativeDistributions[1][i] = cumulativeDistributions[1];
+          claimsOverTime.cumulativeDistributions[5][i] = cumulativeDistributions[5];
+          claimsOverTime.cumulativeDistributions[10][i] = cumulativeDistributions[10];
+          claimsOverTime.cumulativeDistributions[50][i] = cumulativeDistributions[50];
+          claimsOverTime.cumulativeDistributions[100][i] = cumulativeDistributions[100];
+          claimsOverTime.cumulativeDistributions[1_000][i] = cumulativeDistributions[1_000];
+          claimsOverTime.avgClaimAmounts[i] = claimsOverTime.claimAmounts[i] / claimsOverTime.claimCounts[i];
+          claimsOverTime.cumulativeUniqueWallets[i] = cumulativeUniqueWallets.length;
+          break;
         }
       }
-    });
-    cumulativeClaimAmount += claimAmount;
-    cumulativeClaimCount += claimCount;
-    cumulativePrizeCount += prizeCount;
-    cumulativeDistributions[1] += distributions[1];
-    cumulativeDistributions[5] += distributions[5];
-    cumulativeDistributions[10] += distributions[10];
-    cumulativeDistributions[50] += distributions[50];
-    cumulativeDistributions[100] += distributions[100];
-    cumulativeDistributions[500] += distributions[500];
-    cumulativeDistributions[1000] += distributions[1000];
-    claimsOverTime.claimAmounts.push(Math.floor(claimAmount));
-    claimsOverTime.claimCounts.push(claimCount);
-    claimsOverTime.prizeCounts.push(prizeCount);
-    claimsOverTime.uniqueWallets.push(newWallets);
-    claimsOverTime.distributions[1].push(distributions[1]);
-    claimsOverTime.distributions[5].push(distributions[5]);
-    claimsOverTime.distributions[10].push(distributions[10]);
-    claimsOverTime.distributions[50].push(distributions[50]);
-    claimsOverTime.distributions[100].push(distributions[100]);
-    claimsOverTime.distributions[500].push(distributions[500]);
-    claimsOverTime.distributions[1000].push(distributions[1000]);
-    claimsOverTime.avgClaimAmounts.push(claimCount > 0 ? Math.floor(claimAmount / claimCount) : 0);
-    claimsOverTime.cumulativeClaimAmounts.push(Math.floor(cumulativeClaimAmount));
-    claimsOverTime.cumulativeClaimCounts.push(cumulativeClaimCount);
-    claimsOverTime.cumulativePrizeCounts.push(cumulativePrizeCount);
-    claimsOverTime.cumulativeUniqueWallets.push(cumulativeUniqueWallets.length);
-    claimsOverTime.cumulativeDistributions[1].push(cumulativeDistributions[1]);
-    claimsOverTime.cumulativeDistributions[5].push(cumulativeDistributions[5]);
-    claimsOverTime.cumulativeDistributions[10].push(cumulativeDistributions[10]);
-    claimsOverTime.cumulativeDistributions[50].push(cumulativeDistributions[50]);
-    claimsOverTime.cumulativeDistributions[100].push(cumulativeDistributions[100]);
-    claimsOverTime.cumulativeDistributions[500].push(cumulativeDistributions[500]);
-    claimsOverTime.cumulativeDistributions[1000].push(cumulativeDistributions[1000]);
-  }
+    }
+  });
 
   return claimsOverTime;
 }
