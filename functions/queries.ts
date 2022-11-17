@@ -59,7 +59,7 @@ const chains: Partial<Record<Chain, ChainInfo>> = {
   op: {
     provider: new ethers.providers.StaticJsonRpcProvider('https://rpc.ankr.com/optimism'),
     rpcLimit: 3_000,
-    maxBlocksPerRuntime: 15_000,
+    maxBlocksPerRuntime: 50_000,
     prizePool: '0x79Bc8bD53244bC8a9C8c27509a2d573650A83373',
     prizeDistributor: '0x722e9BFC008358aC2d445a8d892cF7b62B550F3F',
     delegator: '0x469C6F4c1AdA45EB2E251685aC2bf05aEd591E70',

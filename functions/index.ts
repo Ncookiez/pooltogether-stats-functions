@@ -43,7 +43,6 @@ const noPagination: Files[] = ['stats', 'lastDeposits', 'lastDelegations'];
 
 // Query Settings:
 const querySchedule: string = '0 * * * *';
-const opQuerySchedule: string = '0,30 * * * *';
 const queryMemory: string = '2GB';
 const queryTimeoutInSeconds: number = 540;
 
@@ -155,7 +154,7 @@ exports.avaxDataQueries = functions.runWith({ memory: queryMemory, timeoutSecond
 });
 
 // Optimism Query Function:
-exports.opDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeoutInSeconds }).pubsub.schedule(opQuerySchedule).onRun(async () => {
+exports.opDataQueries = functions.runWith({ memory: queryMemory, timeoutSeconds: queryTimeoutInSeconds }).pubsub.schedule(querySchedule).onRun(async () => {
   const chain: Chain = 'op';
   const files = await fetchAllFiles(chain);
   const newFiles = await queryData(chain, files);
